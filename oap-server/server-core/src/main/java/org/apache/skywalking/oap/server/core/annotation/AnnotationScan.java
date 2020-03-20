@@ -28,6 +28,7 @@ import java.util.List;
 
 /**
  * Scan the annotation, and notify the listener(s)
+ * 该对象用于扫描注解 并通知相应的监听器
  */
 public class AnnotationScan {
 
@@ -41,6 +42,7 @@ public class AnnotationScan {
      * Register the callback listener
      *
      * @param listener to be called after class found w/ annotation
+     *                 监听器对象首先被包装成一个 缓存 保存在list中 当扫描之后才将获取到的类通知到 监听器上
      */
     public void registerListener(AnnotationListener listener) {
         listeners.add(new AnnotationListenerCache(listener));
@@ -50,12 +52,15 @@ public class AnnotationScan {
      * Begin to scan classes.
      */
     public void scan() throws IOException {
+        // 获取当前类加载器对应的路径
         ClassPath classpath = ClassPath.from(this.getClass().getClassLoader());
+        // 找到 skywalking包 并获取下面所有的类信息
         ImmutableSet<ClassPath.ClassInfo> classes = classpath.getTopLevelClassesRecursive("org.apache.skywalking");
         for (ClassPath.ClassInfo classInfo : classes) {
             Class<?> aClass = classInfo.load();
 
             for (AnnotationListenerCache listener : listeners) {
+                // 如果扫描到的类 包含了该监听器要求的注解
                 if (aClass.isAnnotationPresent(listener.annotation())) {
                     listener.addMatch(aClass);
                 }
@@ -67,6 +72,10 @@ public class AnnotationScan {
 
     private class AnnotationListenerCache {
         private AnnotationListener listener;
+
+        /**
+         * 当前维护的一组 满足触发监听器条件的类 比如某个listener 监听的是@A  然后该列表内部会维护一组携带@A注解的类
+         */
         private List<Class<?>> matchedClass;
 
         private AnnotationListenerCache(AnnotationListener listener) {

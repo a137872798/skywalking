@@ -31,32 +31,42 @@ import org.apache.skywalking.apm.util.StringUtil;
  * {@link ContextCarrier} is a data carrier of {@link TracingContext}. It holds the snapshot (current state) of {@link
  * TracingContext}.
  * <p>
+ *     该对象存储了当前上下文的状态
  */
 public class ContextCarrier implements Serializable {
+
+    /**
+     * 应该是最上层的 segment
+     */
     private ID traceSegmentId;
 
     /**
      * id of parent span. It is unique in parent trace segment.
+     * 最上层的span
      */
     private int spanId = -1;
 
     /**
      * id of parent application instance, it's the id assigned by collector.
+     * 最上层的 服务实例id
      */
     private int parentServiceInstanceId = DictionaryUtil.nullValue();
 
     /**
      * id of first application instance in this distributed trace, it's the id assigned by collector.
+     * 分布式链路的第一个服务实例
      */
     private int entryServiceInstanceId = DictionaryUtil.nullValue();
 
     /**
      * peer(ipv4s/ipv6/hostname + port) of the server, from client side.
+     * 代表服务器端的地址信息 当本机作为消费者时 provider 就作为server
      */
     private String peerHost;
 
     /**
      * Operation/Service name of the first one in this distributed trace. This name may be compressed to an integer.
+     * 入口的 端点名
      */
     private String entryEndpointName;
 
@@ -67,6 +77,7 @@ public class ContextCarrier implements Serializable {
 
     /**
      * {@link DistributedTraceId}, also known as TraceId
+     * 主要的链路id???
      */
     private DistributedTraceId primaryDistributedTraceId;
 
@@ -79,6 +90,7 @@ public class ContextCarrier implements Serializable {
      * Serialize this {@link ContextCarrier} to a {@link String}, with '|' split.
      *
      * @return the serialization string.
+     * 格式化输出信息
      */
     String serialize(HeaderVersion version) {
         if (this.isValid(version)) {
@@ -102,6 +114,7 @@ public class ContextCarrier implements Serializable {
      * Initialize fields with the given text.
      *
      * @param text carries {@link #traceSegmentId} and {@link #spanId}, with '|' split.
+     *             使用一个字符串来填充carrier内部的属性  代表着 carrier的初始化  context的很多方法都要先校验是否完成了初始化
      */
     ContextCarrier deserialize(String text, HeaderVersion version) {
         if (text == null) {
@@ -140,8 +153,10 @@ public class ContextCarrier implements Serializable {
      * Make sure this {@link ContextCarrier} has been initialized.
      *
      * @return true for unbroken {@link ContextCarrier} or no-initialized. Otherwise, false;
+     * 判断carrier 是否已经初始化完毕
      */
     boolean isValid(HeaderVersion version) {
+        // 只有 v2版本才支持校验
         if (HeaderVersion.v2 == version) {
             return traceSegmentId != null
                 && traceSegmentId.isValid()

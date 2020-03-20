@@ -18,6 +18,9 @@
 
 package org.apache.skywalking.apm.agent.core.dictionary;
 
+/**
+ * 该对象维护了 查找地址信息的字段对象
+ */
 public class DictionaryManager {
     /**
      * @return {@link NetworkAddressDictionary} to find application id for application code and network address.

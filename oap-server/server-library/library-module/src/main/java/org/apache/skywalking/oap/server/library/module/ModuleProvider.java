@@ -26,12 +26,21 @@ import lombok.Setter;
  * The <code>ModuleProvider</code> is an implementation of a {@link ModuleDefine}.
  * <p>
  * And each moduleDefine can have one or more implementation, which depends on `application.yml`
+ * 模块提供者
  */
 public abstract class ModuleProvider implements ModuleServiceHolder {
     @Setter
     private ModuleManager manager;
+
+    /**
+     * 该模块对应的定义信息
+     */
     @Setter
     private ModuleDefine moduleDefine;
+
+    /**
+     * 一个模块实际上是提供多个服务的
+     */
     private final Map<Class<? extends Service>, Service> services = new HashMap<>();
 
     public ModuleProvider() {
@@ -52,7 +61,7 @@ public abstract class ModuleProvider implements ModuleServiceHolder {
     public abstract Class<? extends ModuleDefine> module();
 
     /**
-     *
+     * 获取模块配置
      */
     public abstract ModuleConfig createConfigBeanIfAbsent();
 
@@ -68,16 +77,19 @@ public abstract class ModuleProvider implements ModuleServiceHolder {
 
     /**
      * This callback executes after all modules start up successfully.
+     * 启动完成时的后置钩子
      */
     public abstract void notifyAfterCompleted() throws ServiceNotProvidedException, ModuleStartException;
 
     /**
      * @return moduleDefine names which does this moduleDefine require?
+     * 返回该provider 依赖的其他模块
      */
     public abstract String[] requiredModules();
 
     /**
      * Register an implementation for the service of this moduleDefine provider.
+     * 应该是在 prepare 时进行设置的 (配合当时已经初始化完成的config)
      */
     @Override
     public final void registerServiceImplementation(Class<? extends Service> serviceType,

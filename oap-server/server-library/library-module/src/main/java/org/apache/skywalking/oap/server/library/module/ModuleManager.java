@@ -26,6 +26,7 @@ import java.util.ServiceLoader;
 
 /**
  * The <code>ModuleManager</code> takes charge of all {@link ModuleDefine}s in collector.
+ * 模块管理器 外部访问模块信息的入口
  */
 public class ModuleManager implements ModuleDefineHolder {
 
@@ -35,15 +36,18 @@ public class ModuleManager implements ModuleDefineHolder {
     /**
      * Init the given modules
      */
-    public void init(
-        ApplicationConfiguration applicationConfiguration) throws ModuleNotFoundException, ProviderNotFoundException, ServiceNotProvidedException, CycleDependencyException, ModuleConfigException, ModuleStartException {
+    public void init(ApplicationConfiguration applicationConfiguration)
+            throws ModuleNotFoundException, ProviderNotFoundException, ServiceNotProvidedException, CycleDependencyException, ModuleConfigException, ModuleStartException {
         String[] moduleNames = applicationConfiguration.moduleList();
+        // 模块名不是随便写的  对应的实现类一开始就存在于  skywalking 中 也可以通过实现接口配合SPI 满足定制要求
         ServiceLoader<ModuleDefine> moduleServiceLoader = ServiceLoader.load(ModuleDefine.class);
         ServiceLoader<ModuleProvider> moduleProviderLoader = ServiceLoader.load(ModuleProvider.class);
 
         LinkedList<String> moduleList = new LinkedList<>(Arrays.asList(moduleNames));
+        // 在迭代的时候 就会实例化各个类
         for (ModuleDefine module : moduleServiceLoader) {
             for (String moduleName : moduleNames) {
+                // 找到匹配的配置
                 if (moduleName.equals(module.name())) {
                     ModuleDefine newInstance;
                     try {
@@ -51,6 +55,7 @@ public class ModuleManager implements ModuleDefineHolder {
                     } catch (InstantiationException | IllegalAccessException e) {
                         throw new ModuleNotFoundException(e);
                     }
+                    // 获取对应配置 对module 进行装配
                     newInstance.prepare(this, applicationConfiguration.getModuleConfiguration(moduleName), moduleProviderLoader);
                     loadedModules.put(moduleName, newInstance);
                     moduleList.remove(moduleName);
@@ -60,12 +65,15 @@ public class ModuleManager implements ModuleDefineHolder {
         // Finish prepare stage
         isInPrepareStage = false;
 
+        // 代表有某个模块没有找到对应的Define类
         if (moduleList.size() > 0) {
             throw new ModuleNotFoundException(moduleList.toString() + " missing.");
         }
 
+        // 这里会判断确保provider都能正常初始化 因为可能存在循环依赖的问题
         BootstrapFlow bootstrapFlow = new BootstrapFlow(loadedModules);
 
+        // 启动下面所有的provider
         bootstrapFlow.start(this);
         bootstrapFlow.notifyAfterCompleted();
     }
@@ -75,6 +83,12 @@ public class ModuleManager implements ModuleDefineHolder {
         return loadedModules.get(moduleName) != null;
     }
 
+    /**
+     * 通过模块名找到对应的 provider
+     * @param moduleName
+     * @return
+     * @throws ModuleNotFoundRuntimeException
+     */
     @Override
     public ModuleProviderHolder find(String moduleName) throws ModuleNotFoundRuntimeException {
         assertPreparedStage();

@@ -35,6 +35,7 @@ import org.yaml.snakeyaml.Yaml;
  * by default settings in application-default.yml.
  * <p>
  * At last, override setting by system.properties and system.envs if the key matches moduleName.provideName.settingKey.
+ * oap应用的配置加载器
  */
 public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfiguration> {
 
@@ -42,10 +43,17 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
 
     private final Yaml yaml = new Yaml();
 
+    /**
+     * 通过加载某个 yml 文件 将配置抽取出来并设置到 ApplicationConfiguration
+     * @return
+     * @throws ConfigFileNotFoundException
+     */
     @Override
     public ApplicationConfiguration load() throws ConfigFileNotFoundException {
         ApplicationConfiguration configuration = new ApplicationConfiguration();
+        // 读取yml 文件的配置 并填充到config 中
         this.loadConfig(configuration);
+        // 这里从环境变量 系统变量等读取配置并进行覆盖
         this.overrideConfigBySystemEnv(configuration);
         return configuration;
     }
@@ -53,26 +61,33 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
     @SuppressWarnings("unchecked")
     private void loadConfig(ApplicationConfiguration configuration) throws ConfigFileNotFoundException {
         try {
+            // 找到对应文件 并生成输入流
             Reader applicationReader = ResourceUtils.read("application.yml");
+            // 将所有 yml 配置抽取出来并生成map
             Map<String, Map<String, Map<String, ?>>> moduleConfig = yaml.loadAs(applicationReader, Map.class);
             if (CollectionUtils.isNotEmpty(moduleConfig)) {
+                // 一级标签对应模块名
                 moduleConfig.forEach((moduleName, providerConfig) -> {
                     if (providerConfig.size() > 0) {
                         logger.info("Get a module define from application.yml, module name: {}", moduleName);
                         ApplicationConfiguration.ModuleConfiguration moduleConfiguration = configuration.addModule(moduleName);
+                        // 对应 module 下的子标签
                         providerConfig.forEach((providerName, propertiesConfig) -> {
                             logger.info("Get a provider define belong to {} module, provider name: {}", moduleName, providerName);
                             Properties properties = new Properties();
                             if (propertiesConfig != null) {
                                 propertiesConfig.forEach((propertyName, propertyValue) -> {
+                                    // 如果某个 prop 是一个map 对象
                                     if (propertyValue instanceof Map) {
                                         Properties subProperties = new Properties();
                                         ((Map) propertyValue).forEach((key, value) -> {
                                             subProperties.put(key, value);
+                                            // 判断是否有占位符 进行替换
                                             replacePropertyAndLog(key, value, subProperties, providerName);
                                         });
                                         properties.put(propertyName, subProperties);
                                     } else {
+                                        // 普通 键值对直接加入到 prop 中
                                         properties.put(propertyName, propertyValue);
                                         replacePropertyAndLog(propertyName, propertyValue, properties, providerName);
                                     }
@@ -90,8 +105,16 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
         }
     }
 
+    /**
+     * 检测配置中是否有占位符 并进行替换
+     * @param propertyName
+     * @param propertyValue   本次待替换的键值对
+     * @param target    占位符对应的实际配置从该容器中寻找
+     * @param providerName   本次配置所属的 2级标签
+     */
     private void replacePropertyAndLog(final Object propertyName, final Object propertyValue, final Properties target,
         final Object providerName) {
+        // 大概就是替换成实际的配置吧
         final Object replaceValue = yaml.load(PropertyPlaceholderHelper.INSTANCE.replacePlaceholders(propertyValue + "", target));
         if (replaceValue != null) {
             target.replace(propertyName, replaceValue);
@@ -106,6 +129,7 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
     }
 
     private void overrideModuleSettings(ApplicationConfiguration configuration, String key, String value) {
+        // 这个系统变量 必须是 moduleName + 二级配置名
         int moduleAndConfigSeparator = key.indexOf('.');
         if (moduleAndConfigSeparator <= 0) {
             return;
@@ -116,6 +140,7 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
         if (moduleConfiguration == null) {
             return;
         }
+        // 针对二级配置 继续拆分
         int providerAndConfigSeparator = providerSettingSubKey.indexOf('.');
         if (providerAndConfigSeparator <= 0) {
             return;
@@ -125,10 +150,12 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
         if (!moduleConfiguration.has(providerName)) {
             return;
         }
+        // 没有解析出对应的配置时 直接返回
         Properties providerSettings = moduleConfiguration.getProviderConfiguration(providerName);
         if (!providerSettings.containsKey(settingKey)) {
             return;
         }
+        // 覆盖配置
         Object originValue = providerSettings.get(settingKey);
         Class<?> type = originValue.getClass();
         if (type.equals(int.class) || type.equals(Integer.class))

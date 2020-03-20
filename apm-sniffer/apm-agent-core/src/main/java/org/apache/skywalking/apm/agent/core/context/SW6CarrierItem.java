@@ -18,15 +18,33 @@
 
 package org.apache.skywalking.apm.agent.core.context;
 
+/**
+ * CarrierItem 内部存储了一对键值对
+ */
 public class SW6CarrierItem extends CarrierItem {
+    /**
+     * 对应key值
+     */
     public static final String HEADER_NAME = "sw6";
+    /**
+     * 内部存放了 context的快照对象
+     */
     private ContextCarrier carrier;
 
+    /**
+     * 将carrier 格式化作为value 保存在item中
+     * @param carrier
+     * @param next
+     */
     public SW6CarrierItem(ContextCarrier carrier, CarrierItem next) {
         super(HEADER_NAME, carrier.serialize(ContextCarrier.HeaderVersion.v2), next);
         this.carrier = carrier;
     }
 
+    /**
+     * 使用字符串的值来填充 carrier的信息
+     * @param headValue
+     */
     @Override
     public void setHeadValue(String headValue) {
         carrier.deserialize(headValue, ContextCarrier.HeaderVersion.v2);

@@ -25,11 +25,25 @@ import org.apache.skywalking.apm.commons.datacarrier.partition.IDataPartitioner;
  * buffer is full. The Default is BLOCKING <p> Created by wusheng on 2016/10/25.
  */
 public class Channels<T> {
+    /**
+     * 阻塞容器数组 支持当无法填充时 阻塞当前线程
+     */
     private final QueueBuffer<T>[] bufferChannels;
+    /**
+     * 数据分区器 通过该对象判定 某个数据应该存放在哪里
+     */
     private IDataPartitioner<T> dataPartitioner;
     private BufferStrategy strategy;
+    // 可存储数据的总大小
     private final long size;
 
+    /**
+     *
+     * @param channelSize  一共有多少个 buffer
+     * @param bufferSize   指定了 一共有多少个slot 可存放数据
+     * @param partitioner
+     * @param strategy
+     */
     public Channels(int channelSize, int bufferSize, IDataPartitioner<T> partitioner, BufferStrategy strategy) {
         this.dataPartitioner = partitioner;
         this.strategy = strategy;
@@ -44,7 +58,13 @@ public class Channels<T> {
         size = channelSize * bufferSize;
     }
 
+    /**
+     * 尝试存储数据
+     * @param data
+     * @return
+     */
     public boolean save(T data) {
+        // 首先判断应该存放在哪个 buffer
         int index = dataPartitioner.partition(bufferChannels.length, data);
         int retryCountDown = 1;
         if (BufferStrategy.IF_POSSIBLE.equals(strategy)) {
@@ -53,6 +73,7 @@ public class Channels<T> {
                 retryCountDown = maxRetryCount;
             }
         }
+        // 尝试添加数据
         for (; retryCountDown > 0; retryCountDown--) {
             if (bufferChannels[index].save(data)) {
                 return true;

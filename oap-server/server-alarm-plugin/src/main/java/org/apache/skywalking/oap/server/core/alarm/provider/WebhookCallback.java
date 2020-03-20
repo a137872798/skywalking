@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Use SkyWalking alarm webhook API call a remote endpoints.
+ * 处理警报信息的钩子
  */
 public class WebhookCallback implements AlarmCallback {
     private static final Logger logger = LoggerFactory.getLogger(WebhookCallback.class);
@@ -60,6 +61,10 @@ public class WebhookCallback implements AlarmCallback {
                                      .build();
     }
 
+    /**
+     * 当接收到监控数据后
+     * @param alarmMessage
+     */
     @Override
     public void doAlarm(List<AlarmMessage> alarmMessage) {
         if (alarmRulesWatcher.getWebHooks().size() == 0) {
@@ -68,6 +73,7 @@ public class WebhookCallback implements AlarmCallback {
 
         CloseableHttpClient httpClient = HttpClients.custom().build();
         try {
+            // 如果在配置中设置了一组地址 那么会将该信息 发送到各个地址
             alarmRulesWatcher.getWebHooks().forEach(url -> {
                 HttpPost post = new HttpPost(url);
                 post.setConfig(requestConfig);

@@ -20,12 +20,21 @@ package org.apache.skywalking.oap.server.core.storage.annotation;
 import lombok.Getter;
 import org.apache.skywalking.oap.server.core.analysis.Downsampling;
 
+/**
+ * 存储某个数据的相关信息
+ */
 @Getter
 public class Storage {
 
+    /**
+     * 对应的model 名
+     */
     private final String modelName;
     private final boolean capableOfTimeSeries;
     private final boolean deleteHistory;
+    /**
+     * 采样指标
+     */
     private final Downsampling downsampling;
 
     public Storage(String modelName, boolean capableOfTimeSeries, boolean deleteHistory, Downsampling downsampling) {

@@ -18,9 +18,23 @@
 
 package org.apache.skywalking.oap.server.library.module;
 
+/**
+ * 模块定义信息  可以通过该对象快捷的获取到某个模块的子信息
+ */
 public interface ModuleDefineHolder {
 
+    /**
+     * 是否包含某个模块
+     * @param moduleName
+     * @return
+     */
     boolean has(String moduleName);
 
+    /**
+     * 通过 模块名找到某个模块的提供者
+     * @param moduleName
+     * @return
+     * @throws ModuleNotFoundRuntimeException
+     */
     ModuleProviderHolder find(String moduleName) throws ModuleNotFoundRuntimeException;
 }

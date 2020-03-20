@@ -51,6 +51,11 @@ public abstract class RegisterSource extends StreamData implements StorageData {
     @Column(columnName = LAST_UPDATE_TIME)
     private long lastUpdateTime = 0L;
 
+    /**
+     * 将数据进行整合
+     * @param registerSource
+     * @return
+     */
     public boolean combine(RegisterSource registerSource) {
         boolean isChanged = false;
         if (heartbeatTime < registerSource.getHeartbeatTime()) {

@@ -18,5 +18,8 @@
 
 package org.apache.skywalking.oap.server.library.module;
 
+/**
+ * 模块配置
+ */
 public abstract class ModuleConfig {
 }

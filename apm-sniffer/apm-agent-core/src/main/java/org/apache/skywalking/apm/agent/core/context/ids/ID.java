@@ -20,13 +20,28 @@ package org.apache.skywalking.apm.agent.core.context.ids;
 
 import org.apache.skywalking.apm.network.language.agent.UniqueId;
 
+/**
+ * id分为3个部分 一个对应服务实例 一个对应线程id  一个对应时间戳+序列号
+ */
 public class ID {
     private long part1;
     private long part2;
     private long part3;
+    /**
+     * 将id格式化输出
+     */
     private String encoding;
+    /**
+     * 代表是否校验成功
+     */
     private boolean isValid;
 
+    /**
+     * 当使用3个片段进行初始化时 默认校验完成
+     * @param part1
+     * @param part2
+     * @param part3
+     */
     public ID(long part1, long part2, long part3) {
         this.part1 = part1;
         this.part2 = part2;
@@ -35,7 +50,12 @@ public class ID {
         this.isValid = true;
     }
 
+    /**
+     * 使用一组字符串进行初始化
+     * @param encodingString
+     */
     public ID(String encodingString) {
+        // 使用 . 进行分割
         String[] idParts = encodingString.split("\\.", 3);
         this.isValid = true;
         for (int part = 0; part < 3; part++) {
@@ -95,6 +115,10 @@ public class ID {
         return isValid;
     }
 
+    /**
+     * 转换成 protobuf格式的数据
+     * @return
+     */
     public UniqueId transform() {
         return UniqueId.newBuilder().addIdParts(part1).addIdParts(part2).addIdParts(part3).build();
     }

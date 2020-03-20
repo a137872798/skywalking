@@ -27,6 +27,7 @@ import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 /**
  * Record storage represents the entity have fully and manually entity definition by hard codes. Most of then are
  * original log data or task records. These data needs to persistent without further analysis.
+ * 记录代表一个持久化数据
  */
 public abstract class Record implements StorageData {
 
@@ -34,6 +35,7 @@ public abstract class Record implements StorageData {
 
     /**
      * Time attribute, all storage data is time sensitive, as same as {@link Metrics}
+     * 这些持久化数据 都是对时间敏感的 所以总是包含一个记录当前时间的标识
      */
     @Getter
     @Setter

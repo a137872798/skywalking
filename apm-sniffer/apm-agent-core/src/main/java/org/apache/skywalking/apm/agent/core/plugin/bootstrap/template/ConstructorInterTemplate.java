@@ -39,9 +39,13 @@ import org.apache.skywalking.apm.agent.core.plugin.interceptor.enhance.InstanceC
 public class ConstructorInterTemplate {
     /**
      * This field is never set in the template, but has value in the runtime.
+     * 代表生成的代理类 全限定名
      */
     private static String TARGET_INTERCEPTOR;
 
+    /**
+     * 增强接口
+     */
     private static InstanceConstructorInterceptor INTERCEPTOR;
     private static IBootstrapLog LOGGER;
 
@@ -51,7 +55,7 @@ public class ConstructorInterTemplate {
      * @param obj          target class instance.
      * @param allArguments all constructor arguments
      */
-    @RuntimeType
+    @RuntimeType  // 代表不进行强类型检查
     public static void intercept(@This Object obj, @AllArguments Object[] allArguments) {
         try {
             prepare();

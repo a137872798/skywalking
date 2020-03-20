@@ -18,8 +18,14 @@
 
 package org.apache.skywalking.apm.util;
 
+/**
+ * 捕获异常 并使用降级回调去处理
+ */
 public class RunnableWithExceptionProtection implements Runnable {
     private Runnable run;
+    /**
+     * 降级回调
+     */
     private CallbackWhenException callback;
 
     public RunnableWithExceptionProtection(Runnable run, CallbackWhenException callback) {

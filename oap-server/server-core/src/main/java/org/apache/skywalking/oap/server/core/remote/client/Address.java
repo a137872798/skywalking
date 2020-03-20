@@ -22,10 +22,16 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.core.Const;
 
+/**
+ * oap 对应client端 每个被skywalking 监控的应用会定期将链路信息发送到 oap上
+ */
 @Getter
 public class Address implements Comparable<Address> {
     private final String host;
     private final int port;
+    /**
+     * oap 是否跟应用在同一台机器上
+     */
     @Setter
     private volatile boolean isSelf;
 

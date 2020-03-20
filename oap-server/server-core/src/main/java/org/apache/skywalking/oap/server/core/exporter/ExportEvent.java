@@ -24,13 +24,18 @@ import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
 /**
  * The event for exporter {@link MetricValuesExportService} implementation processes. {@link #metrics} should not be
  * changed in any case.
+ * 代表生成了一个 Export事件
  */
 @Getter
 public class ExportEvent {
     /**
      * Fields of this should not be changed in any case.
+     * 对应测量到的数据
      */
     private Metrics metrics;
+    /**
+     * 本次事件类型
+     */
     private EventType type;
 
     public ExportEvent(Metrics metrics, EventType type) {
@@ -41,10 +46,12 @@ public class ExportEvent {
     public enum EventType {
         /**
          * The metrics aggregated in this bulk, not include the existing persistent data.
+         * 增量事件
          */
         INCREMENT,
         /**
          * Final result of the metrics at this moment.
+         * 全量事件
          */
         TOTAL
     }

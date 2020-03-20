@@ -20,6 +20,10 @@ package org.apache.skywalking.oap.server.core.analysis.data;
 
 import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
 
+/**
+ * 内部容器会聚合数据
+ * @param <METRICS>
+ */
 public class MergeDataCache<METRICS extends Metrics> extends Window<METRICS> implements DataCache {
 
     private SWCollection<METRICS> lockedMergeDataCollection;

@@ -31,6 +31,10 @@ import lombok.ToString;
  */
 @ToString
 public class StringFormatGroup {
+
+    /**
+     * 内部存放一组匹配规则
+     */
     private final List<PatternRule> rules;
 
     public StringFormatGroup() {
@@ -44,6 +48,7 @@ public class StringFormatGroup {
      * @param ruleRegex to match target string.
      */
     public void addRule(String name, String ruleRegex) {
+        // 如果匹配规则已经有了就跳过
         for (PatternRule rule : rules) {
             if (rule.name.equals(name)) {
                 return;
@@ -75,6 +80,9 @@ public class StringFormatGroup {
         private final String name;
     }
 
+    /**
+     * 用于正则匹配
+     */
     @Getter
     @ToString
     private static class PatternRule {

@@ -29,6 +29,7 @@ import org.yaml.snakeyaml.Yaml;
 
 /**
  * Rule Reader parses the given `alarm-settings.yml` config file, to the target {@link Rules}.
+ * 读取 alarm-settings.yml 的配置信息 并生成该对象
  */
 public class RulesReader {
     private Map yamlData;

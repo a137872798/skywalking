@@ -60,8 +60,10 @@ public class SkyWalkingAgent {
     public static void premain(String agentArgs, Instrumentation instrumentation) throws PluginException {
         final PluginFinder pluginFinder;
         try {
+            // 初始化配置
             SnifferConfigInitializer.initialize(agentArgs);
 
+            // 加载所有插件
             pluginFinder = new PluginFinder(new PluginBootstrap().loadPlugins());
 
         } catch (AgentPackageNotFoundException ape) {
@@ -99,6 +101,7 @@ public class SkyWalkingAgent {
             return;
         }
 
+        // 这里对所有符合插件条件的类进行增强
         agentBuilder.type(pluginFinder.buildMatch())
                     .transform(new Transformer(pluginFinder))
                     .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
@@ -106,6 +109,7 @@ public class SkyWalkingAgent {
                     .installOn(instrumentation);
 
         try {
+            // 启动所有 BootService
             ServiceManager.INSTANCE.boot();
         } catch (Exception e) {
             logger.error(e, "Skywalking agent boot failure.");

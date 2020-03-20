@@ -27,12 +27,14 @@ import org.apache.skywalking.apm.network.trace.component.ComponentsDefine;
 
 /**
  * The <code>AbstractSpan</code> represents the span's skeleton, which contains all open methods.
+ * 拓展了一些api
  */
 public interface AbstractSpan extends AsyncSpan {
     /**
      * Set the component id, which defines in {@link ComponentsDefine}
      *
      * @return the span for chaining.
+     * 设置一个组件  就是第三方开源框架 如 DUBBO
      */
     AbstractSpan setComponent(Component component);
 
@@ -41,9 +43,15 @@ public interface AbstractSpan extends AsyncSpan {
      * not to use this method for performance reasons.
      *
      * @return the span for chaining.
+     * 通过组件名 找到组件并设置
      */
     AbstractSpan setComponent(String componentName);
 
+    /**
+     * 设置本次跨进程的方式
+     * @param layer
+     * @return
+     */
     AbstractSpan setLayer(SpanLayer layer);
 
     /**
@@ -56,7 +64,7 @@ public interface AbstractSpan extends AsyncSpan {
     AbstractSpan tag(String key, String value);
 
     /**
-     *
+     * 为当前对象设置标签
      */
     AbstractSpan tag(AbstractTag<?> tag, String value);
 
@@ -72,6 +80,7 @@ public interface AbstractSpan extends AsyncSpan {
 
     /**
      * @return true if the actual span is an entry span.
+     * 判断当前span 是否是 entrySpan
      */
     boolean isEntry();
 
@@ -123,7 +132,17 @@ public interface AbstractSpan extends AsyncSpan {
      */
     void ref(TraceSegmentRef ref);
 
+    /**
+     * 开始跨进程
+     * @param startTime
+     * @return
+     */
     AbstractSpan start(long startTime);
 
+    /**
+     * 设置对端目标
+     * @param remotePeer
+     * @return
+     */
     AbstractSpan setPeer(String remotePeer);
 }

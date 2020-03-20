@@ -32,10 +32,16 @@ import org.apache.skywalking.oap.server.core.source.Source;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 转发管理器 内部细化了很多的转发器  通过source 进行匹配
+ */
 public class DispatcherManager implements DispatcherDetectorListener {
 
     private static final Logger logger = LoggerFactory.getLogger(DispatcherManager.class);
 
+    /**
+     * key 对应 source.scope()
+     */
     private Map<Integer, List<SourceDispatcher>> dispatcherMap;
 
     public DispatcherManager() {
@@ -66,8 +72,10 @@ public class DispatcherManager implements DispatcherDetectorListener {
      * <p>
      * If it implement {@link org.apache.skywalking.oap.server.core.analysis.SourceDispatcher}, then, it will be added
      * into this DispatcherManager based on the Source definition.
+     * 扫描某个指定位置将所有的dispatcher 添加到manager中
      */
     public void scan() throws IOException, IllegalAccessException, InstantiationException {
+        // 扫描整个包路径
         ClassPath classpath = ClassPath.from(this.getClass().getClassLoader());
         ImmutableSet<ClassPath.ClassInfo> classes = classpath.getTopLevelClassesRecursive("org.apache.skywalking");
         for (ClassPath.ClassInfo classInfo : classes) {
@@ -77,13 +85,22 @@ public class DispatcherManager implements DispatcherDetectorListener {
         }
     }
 
+    /**
+     * 添加一组分发器
+     * @param aClass
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     */
     @Override
     public void addIfAsSourceDispatcher(Class aClass) throws IllegalAccessException, InstantiationException {
         if (!aClass.isInterface() && SourceDispatcher.class.isAssignableFrom(aClass)) {
             Type[] genericInterfaces = aClass.getGenericInterfaces();
             for (Type genericInterface : genericInterfaces) {
+                // 获取所有接口
                 ParameterizedType anInterface = (ParameterizedType) genericInterface;
+                // 找到对应的接口
                 if (anInterface.getRawType().getTypeName().equals(SourceDispatcher.class.getName())) {
+                    // 获取接口的泛型参数类型
                     Type[] arguments = anInterface.getActualTypeArguments();
 
                     if (arguments.length != 1) {
@@ -91,6 +108,7 @@ public class DispatcherManager implements DispatcherDetectorListener {
                     }
                     Type argument = arguments[0];
 
+                    // 代表本次分发的 Source接口 实现类
                     Object source = ((Class) argument).newInstance();
 
                     if (!Source.class.isAssignableFrom(source.getClass())) {
@@ -100,6 +118,7 @@ public class DispatcherManager implements DispatcherDetectorListener {
                     Source dispatcherSource = (Source) source;
                     SourceDispatcher dispatcher = (SourceDispatcher) aClass.newInstance();
 
+                    // 获取scope 信息并将 dispatcher 和 scope 的映射关系添加到容器中
                     int scopeId = dispatcherSource.scope();
 
                     List<SourceDispatcher> dispatchers = this.dispatcherMap.get(scopeId);

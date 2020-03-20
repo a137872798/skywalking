@@ -20,10 +20,12 @@ package org.apache.skywalking.oap.server.telemetry.api;
 
 /**
  * A gauge is a metrics that represents a single numerical value that can arbitrarily go up and down.
+ * 有关使用率的 测量对象
  */
 public interface GaugeMetrics {
     /**
      * Increase 1 to gauge
+     * 增加 1% 的使用率
      */
     void inc();
 

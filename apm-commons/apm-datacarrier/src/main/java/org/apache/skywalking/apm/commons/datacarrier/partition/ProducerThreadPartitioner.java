@@ -20,6 +20,7 @@ package org.apache.skywalking.apm.commons.datacarrier.partition;
 
 /**
  * use threadid % total to partition
+ * 确保同一线程产生的数据总是在一个slot
  */
 public class ProducerThreadPartitioner<T> implements IDataPartitioner<T> {
     private int retryTime = 3;

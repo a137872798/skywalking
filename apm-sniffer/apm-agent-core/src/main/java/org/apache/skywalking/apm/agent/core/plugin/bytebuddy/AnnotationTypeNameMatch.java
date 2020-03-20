@@ -30,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatcher;
  * classloader risk.
  * <p>
  * 2019-08-15
+ * 该对象按照目标注解名称进行匹配
  */
 public class AnnotationTypeNameMatch<T extends AnnotationDescription> implements ElementMatcher<T> {
 

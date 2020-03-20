@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The default implementor of Config Watcher register.
+ * 配置监听器类
  */
 public abstract class ConfigWatcherRegister implements DynamicConfigurationService {
     private static final Logger logger = LoggerFactory.getLogger(ConfigWatcherRegister.class);
@@ -58,6 +59,7 @@ public abstract class ConfigWatcherRegister implements DynamicConfigurationServi
         if (register.containsKey(holder.getKey())) {
             throw new IllegalStateException("Duplicate register, watcher=" + watcher);
         }
+        // key 代表某个配置文件的名称
         register.put(holder.getKey(), holder);
     }
 
@@ -67,6 +69,7 @@ public abstract class ConfigWatcherRegister implements DynamicConfigurationServi
         configSync();
         logger.info("Current configurations after the bootstrap sync." + LINE_SEPARATOR + register.toString());
 
+        // 每经过多少时间 自动从配置中心拉取数据并进行同步
         Executors.newSingleThreadScheduledExecutor()
                  .scheduleAtFixedRate(
                      new RunnableWithExceptionProtection(
@@ -115,6 +118,9 @@ public abstract class ConfigWatcherRegister implements DynamicConfigurationServi
 
     public abstract Optional<ConfigTable> readConfig(Set<String> keys);
 
+    /**
+     * 该对象内部包含了所有watcher
+     */
     public class Register {
         private Map<String, WatcherHolder> register = new HashMap<>();
 

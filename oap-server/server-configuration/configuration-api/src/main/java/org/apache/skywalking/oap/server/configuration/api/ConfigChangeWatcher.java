@@ -25,13 +25,24 @@ import org.apache.skywalking.oap.server.library.module.ModuleProvider;
 
 /**
  * ConfigChangeWatcher represents a watcher implementor, it will be called when the target value changed.
+ * 该对象会监控配置的变化
  */
 @Getter
 public abstract class ConfigChangeWatcher {
+
+    /**
+     * 该哨兵归属于哪个 module 且 从哪个provider 创建
+     */
     private final String module;
     private final ModuleProvider provider;
     private final String itemName;
 
+    /**
+     *
+     * @param module
+     * @param provider
+     * @param itemName  配置是从哪个文件读取出来的
+     */
     public ConfigChangeWatcher(String module, ModuleProvider provider, String itemName) {
         this.module = module;
         this.provider = provider;

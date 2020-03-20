@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Alarm core includes metrics values in certain time windows based on alarm settings. By using its internal timer
  * trigger and the alarm rules to decides whether send the alarm to database and webhook(s)
+ * 报警核心类
  */
 public class AlarmCore {
     private static final Logger logger = LoggerFactory.getLogger(AlarmCore.class);
@@ -47,15 +48,21 @@ public class AlarmCore {
         return alarmRulesWatcher.getRunningContext().get(metricsName);
     }
 
+    /**
+     * 传入一组检测警报的回调对象
+     * @param allCallbacks
+     */
     public void start(List<AlarmCallback> allCallbacks) {
         LocalDateTime now = LocalDateTime.now();
         lastExecuteTime = now;
+        // 开启定时任务
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
             try {
                 List<AlarmMessage> alarmMessageList = new ArrayList<>(30);
                 LocalDateTime checkTime = LocalDateTime.now();
                 int minutes = Minutes.minutesBetween(lastExecuteTime, checkTime).getMinutes();
                 boolean[] hasExecute = new boolean[] {false};
+                // 获取当前被监控的信息
                 alarmRulesWatcher.getRunningContext().values().forEach(ruleList -> ruleList.forEach(runningRule -> {
                     if (minutes > 0) {
                         runningRule.moveTo(checkTime);
@@ -73,6 +80,7 @@ public class AlarmCore {
                     lastExecuteTime = checkTime.minusSeconds(checkTime.getSecondOfMinute());
                 }
 
+                // 通过回调对象处理收到的消息
                 if (alarmMessageList.size() > 0) {
                     allCallbacks.forEach(callback -> callback.doAlarm(alarmMessageList));
                 }

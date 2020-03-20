@@ -23,6 +23,9 @@ import org.apache.skywalking.apm.util.StringUtil;
 
 import static org.apache.skywalking.apm.agent.core.conf.Config.Agent.NAMESPACE;
 
+/**
+ * 保存一个键值对信息
+ */
 public class CarrierItem implements Iterator<CarrierItem> {
     private String headKey;
     private String headValue;
@@ -33,6 +36,7 @@ public class CarrierItem implements Iterator<CarrierItem> {
     }
 
     public CarrierItem(String headKey, String headValue, CarrierItem next) {
+        // 在 premain() 中会读取配置文件 并将属性设置到 config中 这里就是获取 config.NAMESPACE 属性
         if (StringUtil.isEmpty(NAMESPACE)) {
             this.headKey = headKey;
         } else {

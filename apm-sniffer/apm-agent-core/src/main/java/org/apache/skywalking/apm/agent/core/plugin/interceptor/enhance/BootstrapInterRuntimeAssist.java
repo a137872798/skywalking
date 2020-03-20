@@ -39,6 +39,8 @@ public class BootstrapInterRuntimeAssist {
             if (loader == null) {
                 return null;
             }
+
+            // 生成 agentClassLoader 并且返回静态字段 (就是一个 AgentClassLoader类实例)
             Class<?> agentClassLoaderClass = Class.forName(AGENT_CLASSLOADER_DEFAULT, true, loader);
             Field defaultLoaderField = agentClassLoaderClass.getDeclaredField(DEFAULT_AGENT_CLASSLOADER_INSTANCE);
             defaultLoaderField.setAccessible(true);

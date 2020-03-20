@@ -26,11 +26,17 @@ import io.grpc.netty.NettyChannelBuilder;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * 内部封装了 创建channel 以及装饰channel 的逻辑
+ */
 public class GRPCChannel {
     /**
      * origin channel
      */
     private final ManagedChannel originChannel;
+    /**
+     * 装饰后的channel 对象
+     */
     private final Channel channelWithDecorators;
 
     private GRPCChannel(String host, int port, List<ChannelBuilder> channelBuilders,
@@ -41,9 +47,12 @@ public class GRPCChannel {
             channelBuilder = builder.build(channelBuilder);
         }
 
+        // 构建最终的channel
         this.originChannel = channelBuilder.build();
 
         Channel channel = originChannel;
+
+        // 层层包装
         for (ChannelDecorator decorator : decorators) {
             channel = decorator.build(channel);
         }

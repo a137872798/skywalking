@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
  *
  * @param <INPUT> The type of worker input. All inputs will be merged and saved.
  * @param <CACHE> Cache type to hold all input.
+ *               首先数据会转交给 processor 来处理  然后每个processor 对象内部有一组 worker
+ *               这里约定了 数据类型必须是可缓存的  而缓存是window子类 (通过读写分离的方式解决并发问题)
  */
 public abstract class PersistenceWorker<INPUT extends StorageData, CACHE extends Window<INPUT>> extends AbstractWorker<INPUT> {
 

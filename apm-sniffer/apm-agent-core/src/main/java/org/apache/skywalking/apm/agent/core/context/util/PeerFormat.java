@@ -21,12 +21,16 @@ package org.apache.skywalking.apm.agent.core.context.util;
 import org.apache.skywalking.apm.agent.core.conf.Config;
 import org.apache.skywalking.apm.util.StringUtil;
 
+/**
+ * 当peer信息过长时 处理信息用的
+ */
 public class PeerFormat {
 
     private static final String ABBR = "...";
 
     public static String shorten(String original) {
         if (!StringUtil.isEmpty(original) && original.length() > Config.Plugin.PEER_MAX_LENGTH) {
+            // 变成  XXX ...
             return original.substring(0, Config.Plugin.PEER_MAX_LENGTH - 3) + ABBR;
         }
         return original;

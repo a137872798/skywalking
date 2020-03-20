@@ -20,20 +20,36 @@ package org.apache.skywalking.apm.agent.core.dictionary;
 
 /**
  * The <code>PossibleFound</code> represents a value, which may needEnhance or not.
+ * 代表是否通过 remote信息找到了某个应用
  */
 public abstract class PossibleFound {
     private boolean found;
+    /**
+     * appId
+     */
     private int value;
 
+    /**
+     * 当设置了值 标记found为true
+     * @param value
+     */
     PossibleFound(int value) {
         this.found = true;
         this.value = value;
     }
 
+    /**
+     * 默认情况代表没有找到
+     */
     PossibleFound() {
         this.found = false;
     }
 
+    /**
+     * 根据结果执行不同的函数
+     * @param condition1
+     * @param condition2
+     */
     public void doInCondition(Found condition1, NotFound condition2) {
         if (found) {
             condition1.doProcess(value);

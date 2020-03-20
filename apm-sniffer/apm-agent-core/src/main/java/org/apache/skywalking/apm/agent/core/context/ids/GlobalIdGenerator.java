@@ -22,6 +22,9 @@ import java.util.Random;
 import org.apache.skywalking.apm.agent.core.conf.RemoteDownstreamConfig;
 import org.apache.skywalking.apm.agent.core.dictionary.DictionaryUtil;
 
+/**
+ * 全局id 生成器
+ */
 public final class GlobalIdGenerator {
     private static final ThreadLocal<IDContext> THREAD_ID_SEQUENCE = ThreadLocal.withInitial(
         () -> new IDContext(System.currentTimeMillis(), (short) 0));
@@ -45,13 +48,17 @@ public final class GlobalIdGenerator {
      * bytes.
      *
      * @return an array contains three long numbers, which represents a unique id.
+     * 生成全局id  每个全局id 包含3个部分
      */
     public static ID generate() {
+        // 如果此时 service_instance 还没有设置 抛出异常
         if (RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID == DictionaryUtil.nullValue()) {
             throw new IllegalStateException();
         }
+        // 获取当前线程对应的 idContext
         IDContext context = THREAD_ID_SEQUENCE.get();
 
+        // 通过3个部分生成唯一id
         return new ID(
             RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID,
             Thread.currentThread().getId(),
@@ -60,7 +67,13 @@ public final class GlobalIdGenerator {
     }
 
     private static class IDContext {
+        /**
+         * 在初始化时 为当前时间戳
+         */
         private long lastTimestamp;
+        /**
+         * 默认为0
+         */
         private short threadSeq;
 
         // Just for considering time-shift-back only.
@@ -73,19 +86,29 @@ public final class GlobalIdGenerator {
             this.threadSeq = threadSeq;
         }
 
+        /**
+         * 唯一id 除了以 client信息作为前缀外 之后就是 时间戳 + 一个递增标识的组合
+         * @return
+         */
         private long nextSeq() {
             return timestamp() * 10000 + nextThreadSeq();
         }
 
+        /**
+         * 返回当前时间戳
+         * @return
+         */
         private long timestamp() {
             long currentTimeMillis = System.currentTimeMillis();
 
+            // 这里是属于特殊情况 什么时间震荡
             if (currentTimeMillis < lastTimestamp) {
                 // Just for considering time-shift-back by Ops or OS. @hanahmily 's suggestion.
                 if (random == null) {
                     random = new Random();
                 }
                 if (runRandomTimestamp != currentTimeMillis) {
+                    // 默认返回任意一个int值
                     lastRandomValue = random.nextInt();
                     runRandomTimestamp = currentTimeMillis;
                 }
@@ -96,6 +119,10 @@ public final class GlobalIdGenerator {
             }
         }
 
+        /**
+         * 调用1000次 回归到0
+         * @return
+         */
         private short nextThreadSeq() {
             if (threadSeq == 10000) {
                 threadSeq = 0;

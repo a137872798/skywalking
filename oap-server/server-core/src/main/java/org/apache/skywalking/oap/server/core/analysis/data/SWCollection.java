@@ -20,6 +20,10 @@ package org.apache.skywalking.oap.server.core.analysis.data;
 
 import java.util.Collection;
 
+/**
+ * skywalking 容器
+ * @param <DATA>
+ */
 public interface SWCollection<DATA> {
 
     void reading();
@@ -38,9 +42,20 @@ public interface SWCollection<DATA> {
 
     void finishWriting();
 
+    /**
+     * 使用一个普通的容器读取内部的数据并返回
+     * @return
+     */
     Collection<DATA> collection();
 
+    /**
+     * 判断是否存在某个key 对应的数据
+     * @param key
+     * @return
+     */
     boolean containsKey(DATA key);
+
+    // key 和value 都是同类型的
 
     DATA get(DATA key);
 

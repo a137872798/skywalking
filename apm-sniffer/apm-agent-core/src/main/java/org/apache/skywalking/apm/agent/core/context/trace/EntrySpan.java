@@ -31,11 +31,22 @@ import org.apache.skywalking.apm.network.trace.component.Component;
  * But with the last <code>EntrySpan</code>'s tags and logs, which have more details about a service provider.
  * <p>
  * Such as: Tomcat Embed - Dubbox The <code>EntrySpan</code> represents the Dubbox span.
+ * 模型上对应提供者 也就是在提供者端当接收请求时 才会生成 EntrySpan么
  */
 public class EntrySpan extends StackBasedTracingSpan {
 
+    /**
+     * 当前最大深度
+     */
     private int currentMaxDepth;
 
+    /**
+     * 初始化该对象时 需要传入上下文对象
+     * @param spanId
+     * @param parentSpanId
+     * @param operationName
+     * @param owner
+     */
     public EntrySpan(int spanId, int parentSpanId, String operationName, TracingContext owner) {
         super(spanId, parentSpanId, operationName, owner);
         this.currentMaxDepth = 0;
@@ -48,16 +59,20 @@ public class EntrySpan extends StackBasedTracingSpan {
 
     /**
      * Set the {@link #startTime}, when the first start, which means the first service provided.
+     * 开始调用时  该方法应该会调用多次
      */
     @Override
     public EntrySpan start() {
+        // 只有第一次设置才会 设置start时间
         if ((currentMaxDepth = ++stackDepth) == 1) {
             super.start();
         }
+        // 当调用start 时做一些清理工作
         clearWhenRestart();
         return this;
     }
 
+    // 深度匹配的时候才能正常操作 看来某些时候  stackDepth 与 currentMaxDepth 不会匹配
     @Override
     public EntrySpan tag(String key, String value) {
         if (stackDepth == currentMaxDepth) {
@@ -95,6 +110,7 @@ public class EntrySpan extends StackBasedTracingSpan {
 
     @Override
     public AbstractTracingSpan setOperationName(String operationName) {
+        // TODO 如果是异步模式 也允许设置 operateName 是什么意思???
         if (stackDepth == currentMaxDepth || isInAsyncMode) {
             return super.setOperationName(operationName);
         } else {

@@ -18,6 +18,10 @@
 
 package org.apache.skywalking.apm.agent.core.remote;
 
+/**
+ * 代表一种连接状态
+ */
 public enum GRPCChannelStatus {
-    CONNECTED, DISCONNECT
+    CONNECTED, // 已连接
+    DISCONNECT // 断开连接状态
 }

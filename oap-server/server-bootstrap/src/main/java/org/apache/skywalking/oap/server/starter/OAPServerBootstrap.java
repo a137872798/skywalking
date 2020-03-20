@@ -29,6 +29,7 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 
 /**
  * Starter core. Load the core configuration file, and initialize the startup sequence through {@link ModuleManager}.
+ * 该对象作为 oap的引导程序   总的来说就是通过SPI 机制加载了一系列 moduleProvider 还是要根据用户定制才能发挥作用
  */
 @Slf4j
 public class OAPServerBootstrap {
@@ -39,9 +40,13 @@ public class OAPServerBootstrap {
         ApplicationConfigLoader configLoader = new ApplicationConfigLoader();
         ModuleManager manager = new ModuleManager();
         try {
+            // 加载需要的各种配置  并使用 环境变量和系统变量进行覆盖
             ApplicationConfiguration applicationConfiguration = configLoader.load();
+            // 使用配置信息去初始化模块  (因为配置是按照模块来的)  并启动module 对应的provider 同时调用钩子函数 notifyAfterCompleted()
+            // 通过SPI 机制 使得一些定制功能被启用
             manager.init(applicationConfiguration);
 
+            // 通过遥感模块 获取统计数据服务
             manager.find(TelemetryModule.NAME)
                    .provider()
                    .getService(MetricsCreator.class)

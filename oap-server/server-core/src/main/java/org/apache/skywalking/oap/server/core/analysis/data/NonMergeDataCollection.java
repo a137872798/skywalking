@@ -25,6 +25,9 @@ import org.apache.skywalking.oap.server.core.storage.StorageData;
 
 public class NonMergeDataCollection<STORAGE_DATA extends StorageData> implements SWCollection<STORAGE_DATA> {
 
+    /**
+     * 数据容器是一个list
+     */
     private final List<STORAGE_DATA> data;
     private volatile boolean writing;
     private volatile boolean reading;

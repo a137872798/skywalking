@@ -18,6 +18,9 @@
 
 package org.apache.skywalking.apm.agent.core.context;
 
+/**
+ * 该对象默认 key 和 value 都是空的
+ */
 public class CarrierItemHead extends CarrierItem {
     public CarrierItemHead(CarrierItem next) {
         super("", "", next);

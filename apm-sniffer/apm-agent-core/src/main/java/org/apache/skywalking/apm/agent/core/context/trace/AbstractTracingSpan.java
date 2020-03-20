@@ -37,34 +37,62 @@ import org.apache.skywalking.apm.network.trace.component.Component;
 /**
  * The <code>AbstractTracingSpan</code> represents a group of {@link AbstractSpan} implementations, which belongs a real
  * distributed trace.
+ * span 骨架类
  */
 public abstract class AbstractTracingSpan implements AbstractSpan {
+
+    /**
+     * id
+     */
     protected int spanId;
+    /**
+     * 父对象的id 可能会是这种调用  A -> B -> C 那么B到C 时应该就要记录A -> B 对应的spanId
+     */
     protected int parentSpanId;
+    /**
+     * 内部包含了一组标签
+     */
     protected List<TagValuePair> tags;
+
+    // operationName 和 operationId 好像只能设置一个
+
+    /**
+     * 标记本次的操作
+     */
     protected String operationName;
+    /**
+     * 操作对应的id
+     */
     protected int operationId;
+    /**
+     * 标记跨进程使用的方式
+     */
     protected SpanLayer layer;
     /**
      * The span has been tagged in async mode, required async stop to finish.
+     * 是否是异步执行  比如 dubbo的异步调用吗
      */
     protected volatile boolean isInAsyncMode = false;
     /**
      * The flag represents whether the span has been async stopped
+     * 异步执行是否结束
      */
     private volatile boolean isAsyncStopped = false;
 
     /**
      * The context to which the span belongs
+     * 一个完整的调用 对应一个context 下面可能会有多个span
      */
     protected final TracingContext owner;
 
     /**
      * The start time of this Span.
+     * 本span的执行时间
      */
     protected long startTime;
     /**
      * The end time of this Span.
+     * 本span的结束时间
      */
     protected long endTime;
     /**
@@ -72,12 +100,16 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      */
     protected boolean errorOccurred = false;
 
+    /**
+     * 跨进程使用的组件
+     */
     protected int componentId = 0;
 
     protected String componentName;
 
     /**
      * Log is a concept from OpenTracing spec. https://github.com/opentracing/specification/blob/master/specification.md#log-structured-data
+     * 代表日志信息
      */
     protected List<LogDataEntity> logs;
 
@@ -85,6 +117,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * The refs of parent trace segments, except the primary one. For most RPC call, {@link #refs} contains only one
      * element, but if this segment is a start span of batch process, the segment faces multi parents, at this moment,
      * we use this {@link #refs} to link them.
+     * 应该是记录到目前这一次跨进程前所有的 段信息
      */
     protected List<TraceSegmentRef> refs;
 
@@ -116,12 +149,19 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         return tag(Tags.ofKey(key), value);
     }
 
+    /**
+     * 设置一个标签到 span内
+     * @param tag
+     * @param value
+     * @return
+     */
     @Override
     public AbstractTracingSpan tag(AbstractTag<?> tag, String value) {
         if (tags == null) {
             tags = new ArrayList<>(8);
         }
 
+        // 如果标签是可重写的 那么就可能是覆盖原来的属性
         if (tag.isCanOverwrite()) {
             for (TagValuePair pair : tags) {
                 if (pair.sameWith(tag)) {
@@ -131,6 +171,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
             }
         }
 
+        // 否则添加一个新标签
         tags.add(new TagValuePair(tag, value));
         return this;
     }
@@ -140,13 +181,19 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * it.
      *
      * @param owner of the Span.
+     *              代表本次跨进程调用结束了
      */
     public boolean finish(TraceSegment owner) {
         this.endTime = System.currentTimeMillis();
+        // 将span 添加到segment 中
         owner.archive(this);
         return true;
     }
 
+    /**
+     * 代表开始跨进程
+     * @return
+     */
     @Override
     public AbstractTracingSpan start() {
         this.startTime = System.currentTimeMillis();
@@ -176,6 +223,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * Record a common log with multi fields, for supporting opentracing-java
      *
      * @return the Span, for chaining
+     * 使用map内的数据来初始化
      */
     @Override
     public AbstractTracingSpan log(long timestampMicroseconds, Map<String, ?> fields) {
@@ -195,6 +243,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * an exception.
      *
      * @return span instance, for chaining.
+     * 标记出现了异常
      */
     @Override
     public AbstractTracingSpan errorOccurred() {
@@ -207,6 +256,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * temporarily, the agent will compress this name in async mode.
      *
      * @return span instance, for chaining.
+     * 设置本次跨进程的操作
      */
     @Override
     public AbstractTracingSpan setOperationName(String operationName) {
@@ -214,6 +264,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         this.operationId = DictionaryUtil.nullValue();
 
         // recheck profiling status
+        // 这里是在检查 span的信息
         owner.profilingRecheck(this, operationName);
         return this;
     }
@@ -279,6 +330,10 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         return this;
     }
 
+    /**
+     * 将当前信息转换成 符合 protobuf格式的数据
+     * @return
+     */
     public SpanObjectV2.Builder transform() {
         SpanObjectV2.Builder spanBuilder = SpanObjectV2.newBuilder();
 
@@ -328,6 +383,10 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         return spanBuilder;
     }
 
+    /**
+     * 追加一个段的描述信息
+     * @param ref segment ref
+     */
     @Override
     public void ref(TraceSegmentRef ref) {
         if (refs == null) {
@@ -338,18 +397,28 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
         }
     }
 
+    /**
+     * 准备以异步方式调用
+     * @return
+     */
     @Override
     public AbstractSpan prepareForAsync() {
         if (isInAsyncMode) {
             throw new RuntimeException("Prepare for async repeatedly. Span is already in async mode.");
         }
+        // 做一些准备工作
         ContextManager.awaitFinishAsync(this);
         isInAsyncMode = true;
         return this;
     }
 
+    /**
+     * 代表某个异步调用结束了
+     * @return
+     */
     @Override
     public AbstractSpan asyncFinish() {
+        // 必须确保当前已经被设置成异步模式了
         if (!isInAsyncMode) {
             throw new RuntimeException("Span is not in async mode, please use '#prepareForAsync' to active.");
         }
@@ -357,7 +426,9 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
             throw new RuntimeException("Can not do async finish for the span repeately.");
         }
         this.endTime = System.currentTimeMillis();
+        // 通知异步调用停止
         owner.asyncStop(this);
+        // 标记成异步调用已结束
         isAsyncStopped = true;
         return this;
     }

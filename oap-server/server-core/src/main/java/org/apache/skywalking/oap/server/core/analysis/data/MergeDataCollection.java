@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 
+/**
+ * @param <STREAM_DATA>
+ */
 public class MergeDataCollection<STREAM_DATA extends StreamData> implements SWCollection<STREAM_DATA> {
 
     private Map<STREAM_DATA, STREAM_DATA> collection;

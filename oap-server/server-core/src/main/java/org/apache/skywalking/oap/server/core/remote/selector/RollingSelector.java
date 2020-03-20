@@ -22,8 +22,14 @@ import java.util.List;
 import org.apache.skywalking.oap.server.core.remote.client.RemoteClient;
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 
+/**
+ * 随机选择一个节点
+ */
 public class RollingSelector implements RemoteClientSelector {
 
+    /**
+     * 这里也没有强制要求可见性
+     */
     private int index = 0;
 
     @Override

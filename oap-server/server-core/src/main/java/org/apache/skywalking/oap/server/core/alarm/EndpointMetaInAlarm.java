@@ -33,6 +33,7 @@ public class EndpointMetaInAlarm extends MetaInAlarm {
     private String[] tags;
     private String[] properties;
 
+    // 这里就是写死了scope信息
     @Override
     public String getScope() {
         return DefaultScopeDefine.ENDPOINT_CATALOG_NAME;

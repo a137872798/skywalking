@@ -23,12 +23,17 @@ import org.apache.skywalking.apm.network.common.CPU;
 /**
  * The unit of CPU usage is 1/10000. The backend is using `avg` func directly, and query for percentage requires this
  * unit.
+ * 获取操作系统级别的一些信息  好像是可以计算cpu的使用率的
  */
 public abstract class CPUMetricsAccessor {
     private long lastCPUTimeNs;
     private long lastSampleTimeNs;
     private final int cpuCoreNum;
 
+    /**
+     * 通过 CPU 核数 进行初始化
+     * @param cpuCoreNum
+     */
     public CPUMetricsAccessor(int cpuCoreNum) {
         this.cpuCoreNum = cpuCoreNum;
     }
@@ -40,6 +45,10 @@ public abstract class CPUMetricsAccessor {
 
     protected abstract long getCpuTime();
 
+    /**
+     * 将内部信息转换成 CPU (该对象满足protobuf格式)
+     * @return
+     */
     public CPU getCPUMetrics() {
         long cpuTime = this.getCpuTime();
         long cpuCost = cpuTime - lastCPUTimeNs;

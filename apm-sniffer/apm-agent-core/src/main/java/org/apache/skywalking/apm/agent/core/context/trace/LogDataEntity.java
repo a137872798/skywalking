@@ -27,9 +27,11 @@ import org.apache.skywalking.apm.network.language.agent.v2.Log;
 /**
  * The <code>LogDataEntity</code> represents a collection of {@link KeyValuePair}, contains several fields of a logging
  * operation.
+ * 对应一条日志信息
  */
 public class LogDataEntity {
     private long timestamp;
+    // 一条日志信息由多个部分组成
     private List<KeyValuePair> logs;
 
     private LogDataEntity(long timestamp, List<KeyValuePair> logs) {
@@ -58,6 +60,7 @@ public class LogDataEntity {
         }
     }
 
+    // 转换成 符合 protobuf 的格式
     public Log transform() {
         Log.Builder logMessageBuilder = Log.newBuilder();
         for (KeyValuePair log : logs) {

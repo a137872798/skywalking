@@ -20,11 +20,23 @@ package org.apache.skywalking.oap.server.core.storage.model;
 
 import lombok.Getter;
 
+/**
+ * 某个列信息   首先某个携带@Source 的数据体会被纳入统计中 其次他们的某些字段会携带 @Column 注解 那些字段的属性抽取出来就成了 ModelColumn
+ */
 @Getter
 public class ModelColumn {
+    /**
+     * 列名
+     */
     private final ColumnName columnName;
+    /**
+     * 该列的类型
+     */
     private final Class<?> type;
     private final boolean matchQuery;
+    /**
+     * true 代表不支持匹配
+     */
     private final boolean content;
 
     public ModelColumn(ColumnName columnName, Class<?> type, boolean matchQuery, boolean content) {

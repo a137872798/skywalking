@@ -26,9 +26,13 @@ import org.apache.skywalking.apm.commons.datacarrier.buffer.QueueBuffer;
 /**
  * MultipleChannelsConsumer represent a single consumer thread, but support multiple channels with their {@link
  * IConsumer}s
+ * mpsc模型
  */
 public class MultipleChannelsConsumer extends Thread {
     private volatile boolean running;
+    /**
+     * Group  代表channels 与 IConsumer 的键值对
+     */
     private volatile ArrayList<Group> consumeTargets;
     private volatile long size;
     private final long consumeCycle;
@@ -51,6 +55,7 @@ public class MultipleChannelsConsumer extends Thread {
                 hasData = hasData || consume;
             }
 
+            // 只要至少消费成功过一次就不沉睡
             if (!hasData) {
                 try {
                     Thread.sleep(consumeCycle);

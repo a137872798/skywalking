@@ -27,6 +27,7 @@ import org.apache.skywalking.oap.server.telemetry.api.TelemetryRelatedContext;
 
 /**
  * BaseMetrics parent class represents the me
+ * 统计对象 骨架类
  */
 public abstract class BaseMetrics<T extends SimpleCollector, C> {
     private static Map<String, Object> ALL_METRICS = new HashMap<>();

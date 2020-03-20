@@ -41,6 +41,9 @@ import org.apache.skywalking.oap.server.core.register.ServiceInventory;
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 
+/**
+ * 检测一些警报信息并通知
+ */
 public class NotifyHandler implements MetricsNotify {
     private ServiceInventoryCache serviceInventoryCache;
     private ServiceInstanceInventoryCache serviceInstanceInventoryCache;
@@ -108,6 +111,10 @@ public class NotifyHandler implements MetricsNotify {
         runningRules.forEach(rule -> rule.in(metaInAlarm, metrics));
     }
 
+    /**
+     * 为该对象设置一个回调对象 当接收到警报信息时用该对象来处理
+     * @param callbacks
+     */
     public void init(AlarmCallback... callbacks) {
         List<AlarmCallback> allCallbacks = new ArrayList<>(Arrays.asList(callbacks));
         allCallbacks.add(new WebhookCallback(alarmRulesWatcher));

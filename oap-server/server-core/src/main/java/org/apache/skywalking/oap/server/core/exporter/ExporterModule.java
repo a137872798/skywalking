@@ -20,6 +20,9 @@ package org.apache.skywalking.oap.server.core.exporter;
 
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 
+/**
+ * 假如配置了 exporter 模块 那么在启动 oap 时会启动 ExporterProvider
+ */
 public class ExporterModule extends ModuleDefine {
     public static final String NAME = "exporter";
 

@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * Queue buffer interface.
+ * 存储数据的容器
  */
 public interface QueueBuffer<T> {
     /**

@@ -24,6 +24,7 @@ import java.util.Map;
  * Converter between the give T and Map.
  *
  * @param <T> A storage entity implementation.
+ *           该对象 用于在数据实体和map间做转化
  */
 public interface StorageBuilder<T extends StorageData> {
 

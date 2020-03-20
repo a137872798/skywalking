@@ -22,6 +22,7 @@ import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 
 /**
  * The <code>AbstractTracerContext</code> represents the tracer context manager.
+ * 链路上下文
  */
 public interface AbstractTracerContext {
     /**
@@ -34,6 +35,7 @@ public interface AbstractTracerContext {
     /**
      * Build the reference between this segment and a cross-process segment. How to build, depends on the
      * implementation.
+     * 代表跨进程调用
      *
      * @param carrier carried the context from a cross-process segment.
      */
@@ -42,6 +44,7 @@ public interface AbstractTracerContext {
     /**
      * Capture a snapshot for cross-thread propagation. It's a similar concept with ActiveSpan.Continuation in
      * OpenTracing-java How to build, depends on the implementation.
+     * 捕获当前传播的快照
      *
      * @return the {@link ContextSnapshot} , which includes the reference context.
      */
@@ -50,7 +53,7 @@ public interface AbstractTracerContext {
     /**
      * Build the reference between this segment and a cross-thread segment. How to build, depends on the
      * implementation.
-     *
+     * 将2个段的链路信息 连接在一起 (不同段就代表发生了跨进程)
      * @param snapshot from {@link #capture()} in the parent thread.
      */
     void continued(ContextSnapshot snapshot);
@@ -59,6 +62,7 @@ public interface AbstractTracerContext {
      * Get the global trace id, if needEnhance. How to build, depends on the implementation.
      *
      * @return the string represents the id.
+     * 全局链路id
      */
     String getReadableGlobalTraceId();
 

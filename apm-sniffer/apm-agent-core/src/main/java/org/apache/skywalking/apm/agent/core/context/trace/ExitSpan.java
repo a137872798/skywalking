@@ -32,9 +32,18 @@ import org.apache.skywalking.apm.network.trace.component.Component;
  * <p>
  * Such as: Dubbox - Apache Httpcomponent - ...(Remote) The <code>ExitSpan</code> represents the Dubbox span, and ignore
  * the httpcomponent span's info.
+ * 在模型上对应消费者 也就是离开当前栈时 生成该对象
  */
 public class ExitSpan extends StackBasedTracingSpan implements WithPeerInfo {
 
+    /**
+     * 在初始化时 不仅要传入上下文对象 还需要传入 对端信息
+     * @param spanId
+     * @param parentSpanId
+     * @param operationName
+     * @param peer
+     * @param owner
+     */
     public ExitSpan(int spanId, int parentSpanId, String operationName, String peer, TracingContext owner) {
         super(spanId, parentSpanId, operationName, peer, owner);
     }
@@ -53,6 +62,7 @@ public class ExitSpan extends StackBasedTracingSpan implements WithPeerInfo {
 
     /**
      * Set the {@link #startTime}, when the first start, which means the first service provided.
+     * 当前栈深度为1 时才会设置启动时间
      */
     @Override
     public ExitSpan start() {
@@ -70,6 +80,12 @@ public class ExitSpan extends StackBasedTracingSpan implements WithPeerInfo {
         return this;
     }
 
+    /**
+     * 只有创建的这一层可以设置tag  此外如果是可overwrite的tag 也允许修改
+     * @param tag
+     * @param value
+     * @return
+     */
     @Override
     public AbstractTracingSpan tag(AbstractTag<?> tag, String value) {
         if (stackDepth == 1 || tag.isCanOverwrite()) {
@@ -113,6 +129,11 @@ public class ExitSpan extends StackBasedTracingSpan implements WithPeerInfo {
         return this;
     }
 
+    /**
+     * 异步模式下 允许更改 operationName
+     * @param operationName
+     * @return
+     */
     @Override
     public AbstractTracingSpan setOperationName(String operationName) {
         if (stackDepth == 1 || isInAsyncMode) {

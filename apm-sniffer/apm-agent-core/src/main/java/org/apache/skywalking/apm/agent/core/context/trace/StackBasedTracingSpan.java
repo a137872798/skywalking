@@ -27,9 +27,16 @@ import org.apache.skywalking.apm.network.language.agent.v2.SpanObjectV2;
  * The <code>StackBasedTracingSpan</code> represents a span with an inside stack construction.
  * <p>
  * This kind of span can start and finish multi times in a stack-like invoke line.
+ * 这里会额外记录栈堆信息
  */
 public abstract class StackBasedTracingSpan extends AbstractTracingSpan {
+
+    /**
+     * 当前栈深度
+     */
     protected int stackDepth;
+
+    // 代表对端信息
     protected String peer;
     protected int peerId;
 
@@ -88,6 +95,7 @@ public abstract class StackBasedTracingSpan extends AbstractTracingSpan {
 
     @Override
     public boolean finish(TraceSegment owner) {
+        // 代表此时已经到了栈顶
         if (--stackDepth == 0) {
             /*
              * Since 6.6.0, only entry span requires the op name register, which is endpoint.
@@ -106,8 +114,15 @@ public abstract class StackBasedTracingSpan extends AbstractTracingSpan {
         }
     }
 
+    /**
+     * 设置远端信息
+     * @param remotePeer
+     * @return
+     */
     @Override
     public AbstractSpan setPeer(final String remotePeer) {
+        // 首先查找远端地址是否存在 成功的话设置 peerId 否则设置 peer
+        // 返回的结果是 远端地址对应的 appId
         DictionaryManager.findNetworkAddressSection().find(remotePeer).doInCondition(
             remotePeerId -> peerId = remotePeerId, () -> {
                 peer = remotePeer;

@@ -18,6 +18,9 @@
 
 package org.apache.skywalking.apm.agent.core.context.trace;
 
+/**
+ * 该对象需要包含对端信息
+ */
 public class NoopExitSpan extends NoopSpan implements WithPeerInfo {
 
     private String peer;

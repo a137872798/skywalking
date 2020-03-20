@@ -26,5 +26,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AllDispatcherContext {
+
+    /**
+     * 维护了 DispatcherContext 的映射关系
+     */
     private Map<String, DispatcherContext> allContext = new HashMap<>();
 }

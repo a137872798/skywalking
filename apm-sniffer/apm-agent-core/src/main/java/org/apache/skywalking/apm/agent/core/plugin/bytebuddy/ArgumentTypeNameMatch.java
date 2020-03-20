@@ -27,15 +27,18 @@ import net.bytebuddy.matcher.ElementMatcher;
  * between them is this match use {@link String} to declare the type, instead of {@link Class}. This can avoid the
  * classloader risk.
  * <p>
+ *     根据某个参数进行匹配
  */
 public class ArgumentTypeNameMatch implements ElementMatcher<MethodDescription> {
     /**
      * the index of arguments list.
+     * 对应参数列表的下标
      */
     private int index;
 
     /**
      * the target argument type at {@link ArgumentTypeNameMatch#index} of the arguments list.
+     * 该参数的类型
      */
     private String argumentTypeName;
 

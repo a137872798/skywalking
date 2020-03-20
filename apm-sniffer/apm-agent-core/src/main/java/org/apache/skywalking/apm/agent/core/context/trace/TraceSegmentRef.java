@@ -31,22 +31,41 @@ import org.apache.skywalking.apm.util.StringUtil;
  * {@link TraceSegmentRef} is like a pointer, which ref to another {@link TraceSegment}, use {@link #spanId} point to
  * the exact span of the ref {@link TraceSegment}.
  * <p>
+ *     对应一个segment的描述信息 通过 carrier 填充属性
  */
 public class TraceSegmentRef {
+
+    /**
+     * 代表本次调用是跨进程还是跨线程
+     */
     private SegmentRefType type;
 
+    /**
+     * 本段对应的id  一次完整的调用 应该包含多个段
+     */
     private ID traceSegmentId;
 
+    /**
+     * 当发生跨越时 会对应一个span对象 而span 与 segment又是一一对应的关系
+     */
     private int spanId;
 
+    // 对端信息
     private int peerId = DictionaryUtil.nullValue();
 
     private String peerHost;
 
+    /**
+     * 入口的服务实例id
+     */
     private int entryServiceInstanceId;
 
+    /**
+     * 上级的服务实例id
+     */
     private int parentServiceInstanceId;
 
+    // 端点信息
     private String entryEndpointName;
 
     private int entryEndpointId = DictionaryUtil.nullValue();
@@ -59,6 +78,7 @@ public class TraceSegmentRef {
      * Transform a {@link ContextCarrier} to the <code>TraceSegmentRef</code>
      *
      * @param carrier the valid cross-process propagation format.
+     *                通过上下文的携带对象 生成该对象
      */
     public TraceSegmentRef(ContextCarrier carrier) {
         this.type = SegmentRefType.CROSS_PROCESS;

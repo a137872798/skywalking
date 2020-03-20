@@ -22,6 +22,9 @@ import java.util.List;
 import org.apache.skywalking.oap.server.core.remote.client.RemoteClient;
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 
+/**
+ * 均衡负载对象
+ */
 public interface RemoteClientSelector {
     RemoteClient select(List<RemoteClient> clients, StreamData streamData);
 }

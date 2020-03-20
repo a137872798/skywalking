@@ -25,8 +25,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * The span tags are supported by sky-walking engine. As default, all tags will be stored, but these ones have
  * particular meanings.
  * <p>
+ *     包含一组常用的标签
  */
 public final class Tags {
+
+    /**
+     * 维护全局的标签容器
+     */
     private static final Map<String, StringTag> TAG_PROTOTYPES = new ConcurrentHashMap<>();
 
     private Tags() {

@@ -23,8 +23,13 @@ import java.util.Properties;
 
 /**
  * Modulization configurations. The {@link ModuleManager} is going to start, lookup, start modules based on this.
+ * 应用相关的配置  相当于是一个总的配置访问入口
  */
 public class ApplicationConfiguration {
+
+    /**
+     * 内部根据模块进行细化
+     */
     private HashMap<String, ModuleConfiguration> modules = new HashMap<>();
 
     public String[] moduleList() {
@@ -47,13 +52,24 @@ public class ApplicationConfiguration {
 
     /**
      * The configurations about a certain module.
+     * 模块相关的配置
      */
     public class ModuleConfiguration {
+
+        /**
+         * ProviderConfiguration 是 prop 的包装对象
+         * module 下还有子级配置
+         */
         private HashMap<String, ProviderConfiguration> providers = new HashMap<>();
 
         private ModuleConfiguration() {
         }
 
+        /**
+         * 通过子级配置名 找到对应的prop
+         * @param name
+         * @return
+         */
         public Properties getProviderConfiguration(String name) {
             return providers.get(name).getProperties();
         }

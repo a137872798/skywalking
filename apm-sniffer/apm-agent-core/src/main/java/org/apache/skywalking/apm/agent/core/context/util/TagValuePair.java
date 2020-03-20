@@ -20,8 +20,17 @@ package org.apache.skywalking.apm.agent.core.context.util;
 import org.apache.skywalking.apm.agent.core.context.tag.AbstractTag;
 import org.apache.skywalking.apm.network.common.KeyStringValuePair;
 
+/**
+ * 一个键值对
+ */
 public class TagValuePair {
+    /**
+     * tag 本身只存储了key的信息 并维护一个添加value 的方法  通过该对象存储tag 以及value的信息
+     */
     private AbstractTag key;
+    /**
+     * tag对应的值
+     */
     private String value;
 
     public TagValuePair(AbstractTag tag, String value) {
@@ -37,6 +46,10 @@ public class TagValuePair {
         return value;
     }
 
+    /**
+     * 转换成 protobuf 的格式
+     * @return
+     */
     public KeyStringValuePair transform() {
         KeyStringValuePair.Builder keyValueBuilder = KeyStringValuePair.newBuilder();
         keyValueBuilder.setKey(key.key());

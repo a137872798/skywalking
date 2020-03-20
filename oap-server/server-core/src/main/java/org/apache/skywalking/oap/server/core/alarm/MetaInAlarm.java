@@ -20,14 +20,29 @@ package org.apache.skywalking.oap.server.core.alarm;
 
 import java.util.Objects;
 
+/**
+ * 警告数据的元信息
+ */
 public abstract class MetaInAlarm {
 
+    /**
+     * 该警告信息所在的scope
+     * @return
+     */
     public abstract String getScope();
 
+    /**
+     * scope对应的id
+     * @return
+     */
     public abstract int getScopeId();
 
     public abstract String getName();
 
+    /**
+     * 获取测量名称
+     * @return
+     */
     public abstract String getMetricsName();
 
     /**
@@ -35,6 +50,7 @@ public abstract class MetaInAlarm {
      * two, actually. Such as ServiceRelation, id0 represents the sourceScopeId service id
      *
      * @return the primary id.
+     * 针对 Service 或者 Endpoint 都是只有一个id  而对于 Relation 有2个id
      */
     public abstract int getId0();
 

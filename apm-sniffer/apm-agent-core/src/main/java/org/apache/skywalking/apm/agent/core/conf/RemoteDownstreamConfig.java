@@ -23,6 +23,7 @@ import org.apache.skywalking.apm.agent.core.dictionary.DictionaryUtil;
 /**
  * The <code>RemoteDownstreamConfig</code> includes configurations from collector side. All of them initialized null,
  * Null-Value or empty collection.
+ * 默认情况全是初始值
  */
 public class RemoteDownstreamConfig {
     public static class Agent {

@@ -20,7 +20,12 @@ package org.apache.skywalking.apm.commons.datacarrier.partition;
 
 import org.apache.skywalking.apm.commons.datacarrier.buffer.BufferStrategy;
 
+/**
+ * 数据拆分器
+ * @param <T>
+ */
 public interface IDataPartitioner<T> {
+
     int partition(int total, T data);
 
     /**

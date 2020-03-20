@@ -22,20 +22,32 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Agent.CAUSE_EXCEP
 
 /**
  * {@link ThrowableTransformer} is responsible for transferring stack trace of throwable.
+ * 抽取异常信息并格式化
  */
 public enum ThrowableTransformer {
     INSTANCE;
 
+    /**
+     * 行分隔符 其实就是回车
+     */
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
+    /**
+     *
+     * @param throwable
+     * @param maxLength 消息最大长度
+     * @return
+     */
     public String convert2String(Throwable throwable, final int maxLength) {
         final StringBuilder stackMessage = new StringBuilder();
         Throwable causeException = throwable;
 
+        // 只读取5层异常信息
         int depth = CAUSE_EXCEPTION_DEPTH;
         while (causeException != null && depth != 0) {
             stackMessage.append(printExceptionInfo(causeException));
 
+            // 是否超过了预定长度
             boolean isLookDeeper = printStackElement(causeException.getStackTrace(), new AppendListener() {
                 public void append(String value) {
                     stackMessage.append(value);
@@ -50,6 +62,7 @@ public enum ThrowableTransformer {
                 break;
             }
 
+            // 获取内部的异常对象
             causeException = causeException.getCause();
             depth--;
         }

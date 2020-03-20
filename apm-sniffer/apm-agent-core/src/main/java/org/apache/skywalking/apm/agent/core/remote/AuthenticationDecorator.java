@@ -48,6 +48,7 @@ public class AuthenticationDecorator implements ChannelDecorator {
                 return new ForwardingClientCall.SimpleForwardingClientCall<REQ, RESP>(channel.newCall(method, options)) {
                     @Override
                     public void start(Listener<RESP> responseListener, Metadata headers) {
+                        // 在请求头中携带了 "Authentication" 信息
                         headers.put(AUTH_HEAD_HEADER_NAME, Config.Agent.AUTHENTICATION);
 
                         super.start(responseListener, headers);

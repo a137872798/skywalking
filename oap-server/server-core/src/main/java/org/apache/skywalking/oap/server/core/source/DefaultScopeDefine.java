@@ -28,6 +28,9 @@ import lombok.Setter;
 import org.apache.skywalking.oap.server.core.UnexpectedException;
 import org.apache.skywalking.oap.server.core.annotation.AnnotationListener;
 
+/**
+ * 该对象定义了scope相关的信息
+ */
 public class DefaultScopeDefine {
     private static final Map<String, Integer> NAME_2_ID = new HashMap<>();
     private static final Map<Integer, String> ID_2_NAME = new HashMap<>();
@@ -79,6 +82,9 @@ public class DefaultScopeDefine {
     private static final Map<Integer, Boolean> SERVICE_INSTANCE_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> ENDPOINT_CATALOG = new HashMap<>();
 
+    /**
+     * 代表使用了某注解的 字段不会被用于聚合计算中  但是数据还是能被观察到
+     */
     @Setter
     private static boolean ACTIVE_EXTRA_MODEL_COLUMNS = false;
 
@@ -88,6 +94,7 @@ public class DefaultScopeDefine {
 
     /**
      * Annotation scan listener
+     * 当检测到一个新的注解时  添加到当前scope 中
      */
     public static class Listener implements AnnotationListener {
         @Override
@@ -111,7 +118,10 @@ public class DefaultScopeDefine {
      * @param originalClass represents the class having the {@link ScopeDeclaration} annotation
      */
     private static final void addNewScope(ScopeDeclaration declaration, Class originalClass) {
+        // 从注解中获取本scope的id
         int id = declaration.id();
+
+        // 这里不允许出现冲突
         if (ID_2_NAME.containsKey(id)) {
             throw new UnexpectedException(
                 "ScopeDeclaration id=" + id + " at " + originalClass.getName() + " has conflict with another named " + ID_2_NAME
@@ -123,11 +133,13 @@ public class DefaultScopeDefine {
                 "ScopeDeclaration fieldName=" + name + " at " + originalClass.getName() + " has conflict with another id= " + NAME_2_ID
                     .get(name));
         }
+
         ID_2_NAME.put(id, name);
         NAME_2_ID.put(name, id);
 
         List<ScopeDefaultColumn> scopeDefaultColumns = new ArrayList<>();
 
+        // 尝试获取 虚拟列信息  VirtualColumnDefinition 是定义在类上的
         ScopeDefaultColumn.VirtualColumnDefinition virtualColumn = (ScopeDefaultColumn.VirtualColumnDefinition) originalClass
             .getAnnotation(ScopeDefaultColumn.VirtualColumnDefinition.class);
         if (virtualColumn != null) {
@@ -135,6 +147,8 @@ public class DefaultScopeDefine {
                 new ScopeDefaultColumn(virtualColumn.fieldName(), virtualColumn.columnName(), virtualColumn
                     .type(), virtualColumn.isID()));
         }
+
+        // DefineByField 是定义在字段上的
         Field[] scopeClassField = originalClass.getDeclaredFields();
         if (scopeClassField != null) {
             for (Field field : scopeClassField) {
@@ -152,8 +166,10 @@ public class DefaultScopeDefine {
             }
         }
 
+        // 添加对应的 scope
         SCOPE_COLUMNS.put(name, scopeDefaultColumns);
 
+        // 根据注解携带的种类信息 添加到map中
         String catalogName = declaration.catalog();
         switch (catalogName) {
             case SERVICE_CATALOG_NAME:

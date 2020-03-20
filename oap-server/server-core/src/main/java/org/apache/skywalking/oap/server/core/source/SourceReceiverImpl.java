@@ -22,7 +22,14 @@ import java.io.IOException;
 import lombok.Getter;
 import org.apache.skywalking.oap.server.core.analysis.DispatcherManager;
 
+/**
+ * 该对象用于接收数据 并进行转发
+ */
 public class SourceReceiverImpl implements SourceReceiver {
+
+    /**
+     * 内部委托给 DispatcherManager
+     */
     @Getter
     private final DispatcherManager dispatcherManager;
 

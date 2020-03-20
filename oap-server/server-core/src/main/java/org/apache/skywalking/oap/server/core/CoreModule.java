@@ -57,6 +57,7 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 
 /**
  * Core module definition. Define all open services to other modules.
+ * 启动一些最基础的 service 并且很多 module 都需要基于该service
  */
 public class CoreModule extends ModuleDefine {
 
@@ -66,6 +67,10 @@ public class CoreModule extends ModuleDefine {
         super(NAME);
     }
 
+    /**
+     * 在oap 启动时 会确保某个 module下面所有 services 都启动后才启动
+     * @return
+     */
     @Override
     public Class[] services() {
         List<Class> classes = new ArrayList<>();

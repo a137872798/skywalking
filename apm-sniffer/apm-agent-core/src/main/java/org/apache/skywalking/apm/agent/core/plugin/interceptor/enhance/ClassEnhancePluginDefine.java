@@ -65,6 +65,7 @@ public abstract class ClassEnhancePluginDefine extends AbstractClassEnhancePlugi
      * @param typeDescription target class description
      * @param newClassBuilder byte-buddy's builder to manipulate class bytecode.
      * @return new byte-buddy's builder for further manipulation.
+     * 根据 TypeDescription (相当于 java.lang.Class 携带了描述类的信息)  进行匹配 并进行增强
      */
     @Override
     protected DynamicType.Builder<?> enhance(TypeDescription typeDescription, DynamicType.Builder<?> newClassBuilder,

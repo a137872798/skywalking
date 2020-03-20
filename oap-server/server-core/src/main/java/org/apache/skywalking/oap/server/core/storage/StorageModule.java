@@ -38,6 +38,7 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 /**
  * StorageModule provides the capabilities(services) to interact with the database. With different databases, this
  * module could have different providers, such as currently, H2, MySQL, ES, TiDB.
+ * 存储模块 下面包含了 存储相关的 service
  */
 public class StorageModule extends ModuleDefine {
 

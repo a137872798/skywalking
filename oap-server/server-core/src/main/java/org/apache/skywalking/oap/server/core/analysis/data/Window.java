@@ -30,10 +30,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class Window<DATA> {
 
+    /**
+     * 代表当前使用 A 窗口 还是 B 窗口
+     */
     private AtomicInteger windowSwitch = new AtomicInteger(0);
 
+    // 代表当前指向的容器
     private SWCollection<DATA> pointer;
 
+    // 使用2个容器 这样就可以做到读写分离
     private SWCollection<DATA> windowDataA;
     private SWCollection<DATA> windowDataB;
 
@@ -47,9 +52,13 @@ public abstract class Window<DATA> {
         }
     }
 
+    /**
+     * 初始化内部的数据容器
+     */
     protected void init() {
         this.windowDataA = collectionInstance();
         this.windowDataB = collectionInstance();
+        // 首先指向A 容器
         this.pointer = windowDataA;
     }
 
@@ -63,15 +72,23 @@ public abstract class Window<DATA> {
         windowSwitch.addAndGet(-1);
     }
 
+    /**
+     * 切换当前point 指向的容器
+     */
     public void switchPointer() {
         if (pointer == windowDataA) {
             pointer = windowDataB;
         } else {
             pointer = windowDataA;
         }
+        // 将上一个容器切换成正在读取的状态
         getLast().reading();
     }
 
+    /**
+     * 返回当前容器 并且标记成正在写入的状态
+     * @return
+     */
     SWCollection<DATA> getCurrentAndWriting() {
         if (pointer == windowDataA) {
             windowDataA.writing();
@@ -90,6 +107,10 @@ public abstract class Window<DATA> {
         return getCurrent().size();
     }
 
+    /**
+     * 返回另一个容器 (非pointer 指向的)
+     * @return
+     */
     public SWCollection<DATA> getLast() {
         if (pointer == windowDataA) {
             return windowDataB;
@@ -98,6 +119,9 @@ public abstract class Window<DATA> {
         }
     }
 
+    /**
+     * 将另一个容器的读取标识取消
+     */
     public void finishReadingLast() {
         getLast().clear();
         getLast().finishReading();

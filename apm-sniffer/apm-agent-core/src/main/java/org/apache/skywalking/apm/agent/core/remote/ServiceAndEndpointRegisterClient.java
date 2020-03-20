@@ -56,10 +56,17 @@ import org.apache.skywalking.apm.util.StringUtil;
 
 import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UPSTREAM_TIMEOUT;
 
+/**
+ * 相当于是一个与服务器通信的总控制器
+ */
 @DefaultImplementor
 public class ServiceAndEndpointRegisterClient implements BootService, Runnable, GRPCChannelListener {
     private static final ILog logger = LogManager.getLogger(ServiceAndEndpointRegisterClient.class);
     private static String INSTANCE_UUID;
+
+    /**
+     * 一组键值对   用于描述服务器的信息
+     */
     private static List<KeyStringValuePair> SERVICE_INSTANCE_PROPERTIES;
 
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
@@ -68,29 +75,41 @@ public class ServiceAndEndpointRegisterClient implements BootService, Runnable, 
     private volatile ScheduledFuture<?> applicationRegisterFuture;
     private volatile long coolDownStartTime = -1;
 
+    /**
+     * 监听状态的变化
+     * @param status
+     */
     @Override
     public void statusChanged(GRPCChannelStatus status) {
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
             Channel channel = ServiceManager.INSTANCE.findService(GRPCChannelManager.class).getChannel();
+            // 通过连接对象来创建存根信息  存根对象就是用来发起调用的  就类似于 dubbo.consumer 暴露出来的api
             registerBlockingStub = RegisterGrpc.newBlockingStub(channel);
             serviceInstancePingStub = ServiceInstancePingGrpc.newBlockingStub(channel);
         } else {
+            // 如果检测到连接断开了 那么将存根对象置空
             registerBlockingStub = null;
             serviceInstancePingStub = null;
         }
         this.status = status;
     }
 
+    /**
+     * 做一些前置准备
+     */
     @Override
     public void prepare() {
+        // 看来一个 引入了 skywalking的应用 只会对应一个 GRPCChannelManager
         ServiceManager.INSTANCE.findService(GRPCChannelManager.class).addChannelListener(this);
 
+        // 获取本服务实例id
         INSTANCE_UUID = StringUtil.isEmpty(Config.Agent.INSTANCE_UUID)
             ? UUID.randomUUID().toString().replaceAll("-", "")
             : Config.Agent.INSTANCE_UUID;
 
         SERVICE_INSTANCE_PROPERTIES = new ArrayList<>();
 
+        // 填充属性
         for (String key : Config.Agent.INSTANCE_PROPERTIES.keySet()) {
             SERVICE_INSTANCE_PROPERTIES.add(KeyStringValuePair.newBuilder()
                                                               .setKey(key)
@@ -125,6 +144,7 @@ public class ServiceAndEndpointRegisterClient implements BootService, Runnable, 
     public void run() {
         logger.debug("ServiceAndEndpointRegisterClient running, status:{}.", status);
 
+        // 应该是要等待多少时间后 才尝试连接服务器
         if (coolDownStartTime > 0) {
             final long coolDownDurationInMillis = TimeUnit.MINUTES.toMillis(Config.Agent.COOL_DOWN_THRESHOLD);
             if (System.currentTimeMillis() - coolDownStartTime < coolDownDurationInMillis) {
@@ -137,11 +157,13 @@ public class ServiceAndEndpointRegisterClient implements BootService, Runnable, 
         coolDownStartTime = -1;
 
         boolean shouldTry = true;
+        // 如果已经连接到服务器
         while (GRPCChannelStatus.CONNECTED.equals(status) && shouldTry) {
             shouldTry = false;
             try {
                 if (RemoteDownstreamConfig.Agent.SERVICE_ID == DictionaryUtil.nullValue()) {
                     if (registerBlockingStub != null) {
+                        // 将消费者注册到 注册中心  grpc 官方demo没有这一步啊
                         ServiceRegisterMapping serviceRegisterMapping = registerBlockingStub.withDeadlineAfter(
                             GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
                         ).doServiceRegister(

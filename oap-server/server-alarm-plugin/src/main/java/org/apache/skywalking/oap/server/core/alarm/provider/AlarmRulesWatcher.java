@@ -36,15 +36,25 @@ import org.apache.skywalking.oap.server.library.module.ModuleProvider;
  * monitoring the configuration and parsing them into {@link Rules} and {@link #runningContext}.
  *
  * @since 6.5.0
+ * 哨兵对象
  */
 @Slf4j
 public class AlarmRulesWatcher extends ConfigChangeWatcher {
+
+    /**
+     * 一组规则对象
+     */
     @Getter
     private volatile Map<String, List<RunningRule>> runningContext;
     private volatile Map<AlarmRule, RunningRule> alarmRuleRunningRuleMap;
     private volatile Rules rules;
     private volatile String settingsString;
 
+    /**
+     * 通过 alarm-setting.yml 内的信息来初始化该对象
+     * @param defaultRules
+     * @param provider
+     */
     public AlarmRulesWatcher(Rules defaultRules, ModuleProvider provider) {
         super(AlarmModule.NAME, provider, "alarm-settings");
         this.runningContext = new HashMap<>();
@@ -54,6 +64,10 @@ public class AlarmRulesWatcher extends ConfigChangeWatcher {
         notify(defaultRules);
     }
 
+    /**
+     * 当检测到配置发生变化时
+     * @param value
+     */
     @Override
     public void notify(ConfigChangeEvent value) {
         if (value.getEventType() == EventType.DELETE) {
@@ -67,6 +81,10 @@ public class AlarmRulesWatcher extends ConfigChangeWatcher {
         }
     }
 
+    /**
+     * 使用rule 对象填充内部属性
+     * @param newRules
+     */
     void notify(Rules newRules) {
         Map<AlarmRule, RunningRule> newAlarmRuleRunningRuleMap = new HashMap<>();
         Map<String, List<RunningRule>> newRunningContext = new HashMap<>();

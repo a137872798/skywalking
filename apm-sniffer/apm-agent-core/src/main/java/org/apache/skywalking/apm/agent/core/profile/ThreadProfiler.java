@@ -26,26 +26,36 @@ import org.apache.skywalking.apm.agent.core.context.ids.ID;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 该对象包含了 执行 profileTask 相关的信息 比如context thread
+ */
 public class ThreadProfiler {
 
     // current tracing context
     private final TracingContext tracingContext;
-    // current tracing segment id
+    // current tracing segment id  当前链路段id
     private final ID traceSegmentId;
     // need to profiling thread
     private final Thread profilingThread;
     // profiling execution context
     private final ProfileTaskExecutionContext executionContext;
 
-    // profiling time
+    // profiling time   开始时间 以及最长持续时间
     private long profilingStartTime;
     private long profilingMaxTimeMills;
 
-    // after min duration threshold check, it will start dump
+    // after min duration threshold check, it will start dump  默认情况处于 Ready
     private ProfilingStatus profilingStatus = ProfilingStatus.READY;
     // thread dump sequence
     private int dumpSequence = 0;
 
+    /**
+     * 简单的赋值
+     * @param tracingContext
+     * @param traceSegmentId
+     * @param profilingThread
+     * @param executionContext
+     */
     public ThreadProfiler(TracingContext tracingContext, ID traceSegmentId, Thread profilingThread,
         ProfileTaskExecutionContext executionContext) {
         this.tracingContext = tracingContext;
@@ -57,6 +67,7 @@ public class ThreadProfiler {
 
     /**
      * If tracing start time greater than {@link ProfileTask#getMinDurationThreshold()}, then start to profiling trace
+     * 当上下文的创建时间距今 已经超过了  minDurationThreshold 的时候 就可以标记启动
      */
     public void startProfilingIfNeed() {
         if (System.currentTimeMillis() - tracingContext.createTime() > executionContext.getTask()
@@ -68,6 +79,7 @@ public class ThreadProfiler {
 
     /**
      * Stop profiling status
+     * 标记当前状态为关闭
      */
     public void stopProfiling() {
         this.profilingStatus = ProfilingStatus.STOPPED;
@@ -77,8 +89,10 @@ public class ThreadProfiler {
      * dump tracing thread and build thread snapshot
      *
      * @return snapshot, if null means dump snapshot error, should stop it
+     * 生成快照对象
      */
     public TracingThreadSnapshot buildSnapshot() {
+        // 确保还在时间段内
         if (!isProfilingContinuable()) {
             return null;
         }
@@ -87,9 +101,10 @@ public class ThreadProfiler {
         // dump thread
         StackTraceElement[] stackTrace;
         try {
+            // 获取本线程堆栈信息
             stackTrace = profilingThread.getStackTrace();
 
-            // stack depth is zero, means thread is already run finished
+            // stack depth is zero, means thread is already run finished  此时没有堆栈信息直接返回null
             if (stackTrace.length == 0) {
                 return null;
             }
@@ -99,13 +114,15 @@ public class ThreadProfiler {
         }
 
         // if is first dump, check is can start profiling
+        // 代表首次尝试生成样本时 发现超过了 允许的样本最大值 那么返回null 后 该对象会被关闭
         if (dumpSequence == 0 && (!executionContext.isStartProfileable())) {
             return null;
         }
 
+        // 从当前栈轨迹信息 和最大深度中取 较小的值
         int dumpElementCount = Math.min(stackTrace.length, Config.Profile.DUMP_MAX_STACK_DEPTH);
 
-        // use inverted order, because thread dump is start with bottom
+        // use inverted order, because thread dump is start with bottom  倒序保存结果
         final ArrayList<String> stackList = new ArrayList<>(dumpElementCount);
         for (int i = dumpElementCount - 1; i >= 0; i--) {
             stackList.add(buildStackElementCodeSignature(stackTrace[i]));
@@ -119,6 +136,7 @@ public class ThreadProfiler {
      * build thread stack element code signature
      *
      * @return code sign: className.methodName:lineNumber
+     * 生成格式化信息
      */
     private String buildStackElementCodeSignature(StackTraceElement element) {
         return element.getClassName() + "." + element.getMethodName() + ":" + element.getLineNumber();

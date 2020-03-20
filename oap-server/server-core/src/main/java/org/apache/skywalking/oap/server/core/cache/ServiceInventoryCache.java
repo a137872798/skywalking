@@ -35,6 +35,9 @@ import org.slf4j.LoggerFactory;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
+/**
+ * 服务库存缓存  应该是维护了当前进程中维护了多少服务吧
+ */
 public class ServiceInventoryCache implements Service {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceInventoryCache.class);

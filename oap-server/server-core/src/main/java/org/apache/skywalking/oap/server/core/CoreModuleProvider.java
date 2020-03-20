@@ -100,6 +100,7 @@ import org.apache.skywalking.oap.server.telemetry.TelemetryModule;
  *
  * NOTICE. In our experiences, no one should re-implement the core module service implementations, unless we are very
  * familiar with all mechanisms of SkyWalking.
+ * 启动一些核心service  并且很多服务都需要依赖CoreModule
  */
 public class CoreModuleProvider extends ModuleProvider {
 
@@ -113,11 +114,18 @@ public class CoreModuleProvider extends ModuleProvider {
     private OALEngine oalEngine;
     private ApdexThresholdConfig apdexThresholdConfig;
 
+    /**
+     * 一个  provider 的启动流程是  先通过SPI 机制进行初始化
+     */
     public CoreModuleProvider() {
         super();
+        // 该对象内部包含了需要的参数
         this.moduleConfig = new CoreModuleConfig();
+        // 创建注解扫描器  这里还没有添加关注的注解 已经监听器
         this.annotationScan = new AnnotationScan();
+        // 模块仓库
         this.storageModels = new StorageModels();
+        // 数据接收器  该对象内部有一个 DispatcherManager 作为分发的入口 然后将不同的source 按照scope 转发到不同的dispatcher
         this.receiver = new SourceReceiverImpl();
     }
 
@@ -131,17 +139,28 @@ public class CoreModuleProvider extends ModuleProvider {
         return CoreModule.class;
     }
 
+    /**
+     * 第二步 创建配置 并且将配置文件的数据注入
+     * @return
+     */
     @Override
     public ModuleConfig createConfigBeanIfAbsent() {
         return moduleConfig;
     }
 
+    /**
+     * 第三步调用该方法 通过填充完的 config对象去创建 service
+     * @throws ServiceNotProvidedException
+     * @throws ModuleStartException
+     */
     @Override
     public void prepare() throws ServiceNotProvidedException, ModuleStartException {
         if (moduleConfig.isActiveExtraModelColumns()) {
+            // 设置全局标识
             DefaultScopeDefine.activeExtraModelColumns();
         }
 
+        // getManager 返回ModuleManager
         StreamAnnotationListener streamAnnotationListener = new StreamAnnotationListener(getManager());
 
         AnnotationScan scopeScan = new AnnotationScan();
@@ -313,6 +332,7 @@ public class CoreModuleProvider extends ModuleProvider {
     @Override
     public String[] requiredModules() {
         return new String[] {
+                // 基于遥感模块
             TelemetryModule.NAME,
             ConfigurationModule.NAME
         };

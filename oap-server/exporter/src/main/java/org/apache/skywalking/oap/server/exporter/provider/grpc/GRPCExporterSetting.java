@@ -22,11 +22,18 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.library.module.ModuleConfig;
 
+/**
+ * 该对象实现了 模块配置接口
+ */
 @Setter
 @Getter
 public class GRPCExporterSetting extends ModuleConfig {
+    // 信息会报告到哪台服务器
     private String targetHost;
     private int targetPort;
+
+    // 传输数据使用的缓冲区大小和数量
     private int bufferChannelSize = 20000;
+    // 2个可以一起使用么 还是使用轮询的方式 每次使用不同的channel ???
     private int bufferChannelNum = 2;
 }

@@ -32,6 +32,7 @@ import org.apache.skywalking.apm.network.trace.component.command.ServiceResetCom
 
 /**
  * Command executor that executes the {@link ServiceResetCommand} command
+ * 执行重置服务的命令
  */
 public class ServiceResetCommandExecutor implements CommandExecutor {
     private static final ILog LOGGER = LogManager.getLogger(ServiceResetCommandExecutor.class);

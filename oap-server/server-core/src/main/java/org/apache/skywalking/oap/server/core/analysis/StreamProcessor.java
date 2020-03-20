@@ -20,6 +20,10 @@ package org.apache.skywalking.oap.server.core.analysis;
 
 import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
 
+/**
+ * 流式处理器
+ * @param <STREAM>
+ */
 public interface StreamProcessor<STREAM> {
 
     void in(STREAM stream);

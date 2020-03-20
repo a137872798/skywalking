@@ -25,12 +25,17 @@ import lombok.Setter;
 import org.apache.skywalking.oap.server.core.source.ScopeDefaultColumn;
 import org.apache.skywalking.oap.server.library.module.ModuleConfig;
 
+/**
+ * oap 核心模块的配置信息
+ */
 @Getter
 public class CoreModuleConfig extends ModuleConfig {
     @Setter
     private String role = "Mixed";
     @Setter
     private String nameSpace;
+
+    // 分别是 rest 风格的服务器地址 和 gRPC 风格的地址
     @Setter
     private String restHost;
     @Setter
@@ -111,6 +116,8 @@ public class CoreModuleConfig extends ModuleConfig {
      *
      * But, being activated, user could see the name in the storage entities, which make users easier to use 3rd party
      * tool, such as Kibana->ES, to query the data by themselves.
+     * 开启该属性时  不会聚合  DefinedByField#requireDynamicActive() == true的属性 用于节省网络带宽 和内存
+     * 但是这些属性还是能被观察到
      */
     private boolean activeExtraModelColumns = false;
 
@@ -118,6 +125,10 @@ public class CoreModuleConfig extends ModuleConfig {
         this.downsampling = new ArrayList<>();
     }
 
+    /**
+     * 数据包多久被抛弃
+     * @return
+     */
     public DataTTLConfig getDataTTL() {
         DataTTLConfig dataTTLConfig = new DataTTLConfig();
         dataTTLConfig.setRecordDataTTL(recordDataTTL);
@@ -141,11 +152,13 @@ public class CoreModuleConfig extends ModuleConfig {
          * to {@link #Mixed} and {@link #Aggregator} roles OAP. The only exception is for {@link
          * org.apache.skywalking.oap.server.core.analysis.record.Record}, they don't require 2nd round distributed
          * aggregation, is being pushed into the storage from the receiver OAP directly.
+         * 接收到数据后 不需要进行 聚合操作 而是直接保存
          */
         Receiver,
         /**
          * Aggregator mode OAP receives data from {@link #Mixed} and {@link #Aggregator} OAP nodes, and do 2nd round
          * aggregation. Then save the final result to the storage.
+         * 针对接收到的数据进行二次聚合后保存
          */
         Aggregator
     }

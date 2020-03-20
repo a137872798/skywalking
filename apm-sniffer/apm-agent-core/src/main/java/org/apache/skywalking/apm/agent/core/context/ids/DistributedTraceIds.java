@@ -22,6 +22,10 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * 内部包含了一组全局id
+ * 每次跨进行的时候 应该就是将新的全局id 连接到上个id 并维护在list中 也就是一次完整的调用应该是对应一个该对象
+ */
 public class DistributedTraceIds {
     private LinkedList<DistributedTraceId> relatedGlobalTraces;
 
@@ -29,11 +33,20 @@ public class DistributedTraceIds {
         relatedGlobalTraces = new LinkedList<DistributedTraceId>();
     }
 
+    /**
+     * 返回一组关联的链路id
+     * @return
+     */
     public List<DistributedTraceId> getRelatedGlobalTraces() {
         return Collections.unmodifiableList(relatedGlobalTraces);
     }
 
+    /**
+     * 当跨进程时 追加上新的链路id
+     * @param distributedTraceId
+     */
     public void append(DistributedTraceId distributedTraceId) {
+        // TODO 这里是什么意思 每添加一个id 移除一个 NewId
         if (relatedGlobalTraces.size() > 0 && relatedGlobalTraces.getFirst() instanceof NewDistributedTraceId) {
             relatedGlobalTraces.removeFirst();
         }

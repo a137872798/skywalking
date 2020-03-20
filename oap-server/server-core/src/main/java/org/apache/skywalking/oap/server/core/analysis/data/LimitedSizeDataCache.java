@@ -20,9 +20,19 @@ package org.apache.skywalking.oap.server.core.analysis.data;
 
 import org.apache.skywalking.oap.server.core.storage.ComparableStorageData;
 
+/**
+ *
+ * @param <STORAGE_DATA>
+ */
 public class LimitedSizeDataCache<STORAGE_DATA extends ComparableStorageData> extends Window<STORAGE_DATA> implements DataCache {
 
+    /**
+     * 存储数据使用的容器
+     */
     private SWCollection<STORAGE_DATA> limitedSizeDataCollection;
+    /**
+     * SWCollection 中 每个key 对应了一组 value 这里是限定 value列表的长度
+     */
     private final int limitSize;
 
     public LimitedSizeDataCache(int limitSize) {
@@ -40,6 +50,9 @@ public class LimitedSizeDataCache<STORAGE_DATA extends ComparableStorageData> ex
         limitedSizeDataCollection.put(data);
     }
 
+    /**
+     * 获取当前容器 并且标记成正在写入状态
+     */
     @Override
     public void writing() {
         limitedSizeDataCollection = getCurrentAndWriting();

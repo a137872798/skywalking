@@ -23,16 +23,24 @@ import org.apache.skywalking.apm.commons.datacarrier.buffer.Channels;
 
 /**
  * Pool of consumers <p> Created by wusheng on 2016/10/25.
+ * 消费者驱动对象
  */
 public class ConsumeDriver<T> implements IDriver {
     private boolean running;
+    /**
+     * 每个线程对可以从 QueueBuffer 中读取数据 并进行消费 那么他们是怎么处理并发关系的呢
+     */
     private ConsumerThread[] consumerThreads;
+    /**
+     * 该对象负责存放 QueueBuffer
+     */
     private Channels<T> channels;
     private ReentrantLock lock;
 
     public ConsumeDriver(String name, Channels<T> channels, Class<? extends IConsumer<T>> consumerClass, int num,
         long consumeCycle) {
         this(channels, num);
+        // 根据数量创建对应的消费者线程
         for (int i = 0; i < num; i++) {
             consumerThreads[i] = new ConsumerThread("DataCarrier." + name + ".Consumser." + i + ".Thread", getNewConsumerInstance(consumerClass), consumeCycle);
             consumerThreads[i].setDaemon(true);
@@ -68,6 +76,10 @@ public class ConsumeDriver<T> implements IDriver {
         }
     }
 
+    /**
+     * 启动消费者驱动
+     * @param channels
+     */
     @Override
     public void begin(Channels channels) {
         if (running) {
@@ -75,6 +87,7 @@ public class ConsumeDriver<T> implements IDriver {
         }
         try {
             lock.lock();
+            // 将数据填充到 consumerThread 中
             this.allocateBuffer2Thread();
             for (ConsumerThread consumerThread : consumerThreads) {
                 consumerThread.start();
@@ -90,6 +103,9 @@ public class ConsumeDriver<T> implements IDriver {
         return running;
     }
 
+    /**
+     * 将channels 中的数据填充到 consumerThreads中
+     */
     private void allocateBuffer2Thread() {
         int channelSize = this.channels.getChannelSize();
         /**
@@ -101,6 +117,7 @@ public class ConsumeDriver<T> implements IDriver {
          *
          * if consumerThreads.length > channelSize
          * there will be some threads do nothing.
+         * 一个  QueueBuffer 对应一个消费线程
          */
         for (int channelIndex = 0; channelIndex < channelSize; channelIndex++) {
             int consumerIndex = channelIndex % consumerThreads.length;

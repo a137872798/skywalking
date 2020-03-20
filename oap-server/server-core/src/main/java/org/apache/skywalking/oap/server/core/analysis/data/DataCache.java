@@ -18,9 +18,18 @@
 
 package org.apache.skywalking.oap.server.core.analysis.data;
 
+/**
+ * 数据缓存
+ */
 public interface DataCache {
 
+    /**
+     * 开始将数据写入到缓存
+     */
     void writing();
 
+    /**
+     * 代表本次写入完成
+     */
     void finishWriting();
 }

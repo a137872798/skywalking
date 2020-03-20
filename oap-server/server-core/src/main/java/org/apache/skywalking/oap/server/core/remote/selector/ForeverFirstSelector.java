@@ -24,6 +24,9 @@ import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 始终选择第一个节点
+ */
 public class ForeverFirstSelector implements RemoteClientSelector {
 
     private static final Logger logger = LoggerFactory.getLogger(ForeverFirstSelector.class);

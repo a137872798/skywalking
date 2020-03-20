@@ -20,16 +20,29 @@ package org.apache.skywalking.apm.agent.core.context.tag;
 
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 
+/**
+ * 代表一组标签  应该是一个 pair
+ * @param <T>
+ */
 public abstract class AbstractTag<T> {
 
     private int id;
 
+    /**
+     * 该标签是否允许修改
+     */
     private boolean canOverwrite;
     /**
-     * The key of this Tag.
+     * The key of this Tag. 对应 pair<key,>
      */
     protected final String key;
 
+    /**
+     * 初始化时
+     * @param id
+     * @param tagKey
+     * @param canOverwrite
+     */
     public AbstractTag(int id, String tagKey, boolean canOverwrite) {
         this.id = id;
         this.key = tagKey;

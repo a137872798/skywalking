@@ -40,6 +40,10 @@ public class GRPCExporterProvider extends ModuleProvider {
         return "grpc";
     }
 
+    /**
+     * 注意针对某个 module 一次只能使用一个 provider
+     * @return
+     */
     @Override
     public Class<? extends ModuleDefine> module() {
         return ExporterModule.class;
@@ -51,8 +55,14 @@ public class GRPCExporterProvider extends ModuleProvider {
         return setting;
     }
 
+    /**
+     * 当从 ApplicationConfiguration 读取该模块相关的配置后
+     * @throws ServiceNotProvidedException
+     * @throws ModuleStartException
+     */
     @Override
     public void prepare() throws ServiceNotProvidedException, ModuleStartException {
+        // 根据配置生成 service 并注册到provider 上  这样外部就可以通过 ModuleManager 间接找到这个Service 并调用相关方法
         exporter = new GRPCExporter(setting);
         this.registerServiceImplementation(MetricValuesExportService.class, exporter);
     }

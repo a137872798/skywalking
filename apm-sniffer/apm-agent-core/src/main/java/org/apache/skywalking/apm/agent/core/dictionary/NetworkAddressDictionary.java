@@ -30,17 +30,24 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Dictionary.SERVIC
 
 /**
  * Map of network address id to network literal address, which is from the collector side.
+ * 维护了 地址与 appId的映射关系
  */
 public enum NetworkAddressDictionary {
     INSTANCE;
     private Map<String, Integer> serviceDictionary = new ConcurrentHashMap<>();
     private Set<String> unRegisterServices = ConcurrentHashMap.newKeySet();
 
+    /**
+     * 通过网络地址找到应用id
+     * @param networkAddress
+     * @return
+     */
     public PossibleFound find(String networkAddress) {
         Integer applicationId = serviceDictionary.get(networkAddress);
         if (applicationId != null) {
             return new Found(applicationId);
         } else {
+            // 当没有找到地址对应的app信息时 添加到对应容器中
             if (serviceDictionary.size() + unRegisterServices.size() < SERVICE_CODE_BUFFER_SIZE) {
                 unRegisterServices.add(networkAddress);
             }
@@ -48,6 +55,10 @@ public enum NetworkAddressDictionary {
         }
     }
 
+    /**
+     * 从unRegister 容器中将数据转移到 serviceDictionary中
+     * @param networkAddressRegisterServiceBlockingStub
+     */
     public void syncRemoteDictionary(RegisterGrpc.RegisterBlockingStub networkAddressRegisterServiceBlockingStub) {
         if (unRegisterServices.size() > 0) {
             NetAddressMapping networkAddressMappings = networkAddressRegisterServiceBlockingStub
@@ -63,6 +74,9 @@ public enum NetworkAddressDictionary {
         }
     }
 
+    /**
+     * 清除当前维护的地址信息
+     */
     public void clear() {
         this.serviceDictionary.clear();
     }

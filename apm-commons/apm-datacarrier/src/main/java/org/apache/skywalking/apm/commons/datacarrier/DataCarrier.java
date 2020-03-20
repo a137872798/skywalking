@@ -33,6 +33,9 @@ import org.apache.skywalking.apm.commons.datacarrier.partition.SimpleRollingPart
 public class DataCarrier<T> {
     private final int bufferSize;
     private final int channelSize;
+    /**
+     * 该对象内部维护多个 QueueBuffer 且每个buffer 又有多个slot 用于存放数据
+     */
     private Channels<T> channels;
     private IDriver driver;
     private String name;
@@ -76,8 +79,10 @@ public class DataCarrier<T> {
      * produce data to buffer, using the given {@link BufferStrategy}.
      *
      * @return false means produce data failure. The data will not be consumed.
+     * 将一个数据保存在内部的 buffer中
      */
     public boolean produce(T data) {
+        // 如果本对象设置了 数据消费者 而消费者已经关闭的情况 那么不允许再添加数据了 (无法再消费数据所以添加也没有意义)
         if (driver != null) {
             if (!driver.isRunning(channels)) {
                 return false;
@@ -92,8 +97,10 @@ public class DataCarrier<T> {
      *
      * @param consumerClass class of consumer
      * @param num           number of consumer threads
+     *                      开始消费数据
      */
     public DataCarrier consume(Class<? extends IConsumer<T>> consumerClass, int num, long consumeCycle) {
+        // 如果之前存在消费驱动 那么进行重置
         if (driver != null) {
             driver.close(channels);
         }

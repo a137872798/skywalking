@@ -24,6 +24,7 @@ import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
  * Span could use these APIs to active and extend its lift cycle across thread.
  * <p>
  * This is typical used in async plugin, especially RPC plugins.
+ * 应该就是代表 跨进程的连接吧
  */
 public interface AsyncSpan {
     /**
@@ -39,6 +40,7 @@ public interface AsyncSpan {
      * The execution times of {@link #prepareForAsync} and {@link #asyncFinish()} must match.
      *
      * @return the current span
+     * 设置异步调用标识
      */
     AbstractSpan prepareForAsync();
 
@@ -48,6 +50,7 @@ public interface AsyncSpan {
      * The execution times of {@link #prepareForAsync} and {@link #asyncFinish()} must match.
      *
      * @return the current span
+     * 代表另一个进程执行完毕 回到本进程
      */
     AbstractSpan asyncFinish();
 }

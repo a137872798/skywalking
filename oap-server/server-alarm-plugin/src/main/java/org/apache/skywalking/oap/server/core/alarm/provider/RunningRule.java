@@ -61,6 +61,10 @@ public class RunningRule {
     private final List<String> excludeNames;
     private final AlarmMessageFormatter formatter;
 
+    /**
+     * 通过某个规则对象 创建 监控数据的window
+     * @param alarmRule
+     */
     public RunningRule(AlarmRule alarmRule) {
         metricsName = alarmRule.getMetricsName();
         this.ruleName = alarmRule.getAlarmRuleName();

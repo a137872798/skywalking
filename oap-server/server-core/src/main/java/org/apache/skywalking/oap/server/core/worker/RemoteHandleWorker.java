@@ -22,9 +22,18 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 
+/**
+ * 代表一个远端的处理worker
+ */
 @AllArgsConstructor
 @Getter
 public class RemoteHandleWorker {
+    /**
+     * 处理器实例
+     */
     private AbstractWorker worker;
+    /**
+     * 远端数据类型
+     */
     private Class<? extends StreamData> streamDataClass;
 }

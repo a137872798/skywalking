@@ -22,25 +22,26 @@ import java.util.Objects;
 
 /**
  * Profile task bean, receive from OAP server
+ * 一个task 对应多个线程对某个 操作进行追踪
  */
 public class ProfileTask {
 
-    // task id
+    // task id 本次任务id
     private String taskId;
 
-    // monitor first span operation name
+    // monitor first span operation name  在整个调用链路中的首个操作名称  在一段时间内 会有多个线程触发同一个操作 这里是以该操作为入口 统计每条线程的堆栈信息
     private String fistSpanOPName;
 
-    // task duration (minute)
+    // task duration (minute)  任务持续时间
     private int duration;
 
-    // trace start monitoring time (ms)
+    // trace start monitoring time (ms)  至少等待这么长的时间后 才能开启任务
     private int minDurationThreshold;
 
-    // thread dump period (ms)
+    // thread dump period (ms)  每间隔多少时间 记录下一次快照信息
     private int threadDumpPeriod;
 
-    // max number of traces monitor on the sniffer
+    // max number of traces monitor on the sniffer  允许采集的最大样品数量
     private int maxSamplingCount;
 
     // task start time

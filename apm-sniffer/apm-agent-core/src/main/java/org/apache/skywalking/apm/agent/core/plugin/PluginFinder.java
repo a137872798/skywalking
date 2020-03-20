@@ -87,6 +87,10 @@ public class PluginFinder {
         return matchedPlugins;
     }
 
+    /**
+     * 将所有匹配条件组合成一个大的对象
+     * @return
+     */
     public ElementMatcher<? super TypeDescription> buildMatch() {
         ElementMatcher.Junction judge = new AbstractJunction<NamedElement>() {
             @Override

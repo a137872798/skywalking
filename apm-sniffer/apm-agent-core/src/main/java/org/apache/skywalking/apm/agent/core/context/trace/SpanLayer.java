@@ -18,7 +18,11 @@
 
 package org.apache.skywalking.apm.agent.core.context.trace;
 
+/**
+ * 代表跨进程的方式
+ */
 public enum SpanLayer {
+    // cache 应该是对应redis???
     DB(1), RPC_FRAMEWORK(2), HTTP(3), MQ(4), CACHE(5);
 
     private int code;

@@ -25,9 +25,14 @@ import org.apache.skywalking.oap.server.core.annotation.AnnotationListener;
 
 /**
  * Disable definition scanner and register.
+ * 该对象用于监听 @MultipleDisable 注解
  */
 public class DisableRegister implements AnnotationListener {
     public static DisableRegister INSTANCE = new DisableRegister();
+
+    /**
+     * 存储 @MultipleDisable 下@Disable[] 所有的内容
+     */
     private Set<String> disableEntitySet = new HashSet<>();
 
     private DisableRegister() {
@@ -38,6 +43,10 @@ public class DisableRegister implements AnnotationListener {
         return MultipleDisable.class;
     }
 
+    /**
+     * 获取 class上的注解信息 如果有多个 disable 对象 那么添加到set中
+     * @param aClass
+     */
     @Override
     public void notify(Class aClass) {
         MultipleDisable annotation = (MultipleDisable) aClass.getAnnotation(MultipleDisable.class);
@@ -57,6 +66,7 @@ public class DisableRegister implements AnnotationListener {
         return disableEntitySet.contains(name);
     }
 
+    // 该对象监听单个 disable 注解
     public static class SingleDisableScanListener implements AnnotationListener {
         @Override
         public Class<? extends Annotation> annotation() {

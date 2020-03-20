@@ -26,6 +26,7 @@ import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 
 /**
  * TopN data.
+ * 在 record的层面进一步细化
  */
 public abstract class TopN extends Record implements ComparableStorageData {
     public static final String STATEMENT = "statement";
@@ -33,10 +34,16 @@ public abstract class TopN extends Record implements ComparableStorageData {
     public static final String TRACE_ID = "trace_id";
     public static final String SERVICE_ID = "service_id";
 
+    /**
+     * 描述信息
+     */
     @Getter
     @Setter
     @Column(columnName = STATEMENT, content = true)
     private String statement;
+    /**
+     * 延迟
+     */
     @Getter
     @Setter
     @Column(columnName = LATENCY)

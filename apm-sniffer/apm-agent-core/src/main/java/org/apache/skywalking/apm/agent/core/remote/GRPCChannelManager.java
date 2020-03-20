@@ -41,11 +41,23 @@ import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
 public class GRPCChannelManager implements BootService, Runnable {
     private static final ILog logger = LogManager.getLogger(GRPCChannelManager.class);
 
+    /**
+     * 一个manager 对象 只对应一个channel
+     */
     private volatile GRPCChannel managedChannel = null;
     private volatile ScheduledFuture<?> connectCheckFuture;
+    /**
+     * 是否开启重连功能  首次启动就是通过该标识
+     */
     private volatile boolean reconnect = true;
     private final Random random = new Random();
+    /**
+     * 状态变化的监听器
+     */
     private final List<GRPCChannelListener> listeners = Collections.synchronizedList(new LinkedList<>());
+    /**
+     * 需要连接的服务器地址  每次只连接一个 当出现异常时 才选择更换
+     */
     private volatile List<String> grpcServers;
     private volatile int selectedIdx = -1;
     private volatile int reconnectCount = 0;
@@ -55,8 +67,12 @@ public class GRPCChannelManager implements BootService, Runnable {
 
     }
 
+    /**
+     * 当插入探针的应用启动时 就会开启client 并将实时监控到的信息发送到远端服务器
+     */
     @Override
     public void boot() {
+        // 如果没有设置 后端服务器 那么就不需要发送数据了
         if (Config.Collector.BACKEND_SERVICE.trim().length() == 0) {
             logger.error("Collector server addresses are not set.");
             logger.error("Agent will not uplink any data.");
@@ -66,6 +82,7 @@ public class GRPCChannelManager implements BootService, Runnable {
         connectCheckFuture = Executors.newSingleThreadScheduledExecutor(
             new DefaultNamedThreadFactory("GRPCChannelManager")
         ).scheduleAtFixedRate(
+                // 该对象会捕获出现的异常 比使用降级策略来处理 对应到这里就是 logger.error
             new RunnableWithExceptionProtection(
                 this,
                 t -> logger.error("unexpected exception.", t)
@@ -83,6 +100,7 @@ public class GRPCChannelManager implements BootService, Runnable {
         if (connectCheckFuture != null) {
             connectCheckFuture.cancel(true);
         }
+        // 应该是对应nettyChannel
         if (managedChannel != null) {
             managedChannel.shutdownNow();
         }
@@ -92,7 +110,9 @@ public class GRPCChannelManager implements BootService, Runnable {
     @Override
     public void run() {
         logger.debug("Selected collector grpc service running, reconnect:{}.", reconnect);
+        // 当出现了某些异常时  该标识会设置成true
         if (reconnect) {
+            // 并不是连接到所有server 而是会通过轮询策略选择其中一个地址
             if (grpcServers.size() > 0) {
                 String server = "";
                 try {
@@ -107,13 +127,17 @@ public class GRPCChannelManager implements BootService, Runnable {
                             managedChannel.shutdownNow();
                         }
 
+                        // 这里应该没有真正完成连接吧
                         managedChannel = GRPCChannel.newBuilder(ipAndPort[0], Integer.parseInt(ipAndPort[1]))
+                                                    // 这2个对象用于配置channel
                                                     .addManagedChannelBuilder(new StandardChannelBuilder())
                                                     .addManagedChannelBuilder(new TLSChannelBuilder())
+                                                    // 这2个对象用于装饰channel
                                                     .addChannelDecorator(new AgentIDDecorator())
                                                     .addChannelDecorator(new AuthenticationDecorator())
                                                     .build();
                         notify(GRPCChannelStatus.CONNECTED);
+                        // 当连接到某个服务后 重置相关标识
                         reconnectCount = 0;
                         reconnect = false;
                     } else if (managedChannel.isConnected(++reconnectCount > Config.Agent.FORCE_RECONNECTION_PERIOD)) {
@@ -142,12 +166,17 @@ public class GRPCChannelManager implements BootService, Runnable {
         listeners.add(listener);
     }
 
+    /**
+     * 获取装饰完的channel 对象
+     * @return
+     */
     public Channel getChannel() {
         return managedChannel.getChannel();
     }
 
     /**
      * If the given expcetion is triggered by network problem, connect in background.
+     * 当检测到网络异常时 才标记需要重连 然后在定时任务中会重新创建连接
      */
     public void reportError(Throwable throwable) {
         if (isNetworkError(throwable)) {
@@ -166,6 +195,11 @@ public class GRPCChannelManager implements BootService, Runnable {
         }
     }
 
+    /**
+     * 判断产生的异常是否是网络异常
+     * @param throwable
+     * @return
+     */
     private boolean isNetworkError(Throwable throwable) {
         if (throwable instanceof StatusRuntimeException) {
             StatusRuntimeException statusRuntimeException = (StatusRuntimeException) throwable;

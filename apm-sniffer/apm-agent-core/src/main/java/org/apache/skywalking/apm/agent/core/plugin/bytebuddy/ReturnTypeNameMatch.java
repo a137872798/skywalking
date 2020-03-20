@@ -27,6 +27,7 @@ import net.bytebuddy.matcher.ElementMatcher;
  * risk.
  * <p>
  * 2019-08-15
+ * 基于返回值类型进行匹配
  */
 public class ReturnTypeNameMatch implements ElementMatcher<MethodDescription> {
 

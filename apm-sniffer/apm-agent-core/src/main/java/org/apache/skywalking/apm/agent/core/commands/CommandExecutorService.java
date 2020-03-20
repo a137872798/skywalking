@@ -35,11 +35,17 @@ import java.util.Map;
  * and it will routes the command to corresponding executor.
  * <p>
  * Registering command executor for new command in {@link #commandExecutorMap} is required to support new command.
+ * 当skywalking 探针 对类进行增加后 会启动所有 BootService
+ * 该对象会维护命令以及其 处理器的映射关系 当接收到请求后通过该对象去处理
  */
 @DefaultImplementor
 public class CommandExecutorService implements BootService, CommandExecutor {
     private Map<String, CommandExecutor> commandExecutorMap;
 
+    /**
+     * 前置工作中插入2个 固定的命令
+     * @throws Throwable
+     */
     @Override
     public void prepare() throws Throwable {
         commandExecutorMap = new HashMap<String, CommandExecutor>();
@@ -71,6 +77,11 @@ public class CommandExecutorService implements BootService, CommandExecutor {
         executorForCommand(command).execute(command);
     }
 
+    /**
+     * 从map中找到command 对应的executor
+     * @param command
+     * @return
+     */
     private CommandExecutor executorForCommand(final BaseCommand command) {
         final CommandExecutor executor = commandExecutorMap.get(command.getCommand());
         if (executor != null) {

@@ -37,17 +37,24 @@ import org.apache.skywalking.apm.util.StringFormatGroup;
 public class OperationNameFormatService implements BootService {
     private static final Map<Class, StringFormatGroup> RULES = new ConcurrentHashMap<Class, StringFormatGroup>();
 
+    /**
+     * 在准备阶段触发
+     * @throws Throwable
+     */
     @Override
     public void prepare() throws Throwable {
+        // getClasses 单元测试 啥也没有啊???
         for (Class<?> ruleName : Config.Plugin.OPGroup.class.getClasses()) {
             if (!OPGroupDefinition.class.isAssignableFrom(ruleName)) {
                 continue;
             }
+            // 找到类对应的格式化对象 没有的话 就创建一个
             StringFormatGroup formatGroup = RULES.get(ruleName);
             if (formatGroup == null) {
                 formatGroup = new StringFormatGroup();
                 RULES.put(ruleName, formatGroup);
             }
+            // 将map类型的属性取出来然后把 key,value 生成正则对象保存到 formatGroup中
             for (Field ruleNameField : ruleName.getFields()) {
                 if (ruleNameField.getType().equals(Map.class)) {
                     Map<String, String> rule = (Map<String, String>) ruleNameField.get(null);

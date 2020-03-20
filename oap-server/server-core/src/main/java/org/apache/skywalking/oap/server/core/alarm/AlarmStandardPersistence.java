@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Save the alarm info into storage for UI query.
+ * 当接收到一组警告信息时 使用该对象进行处理 (存储)
  */
 public class AlarmStandardPersistence implements AlarmCallback {
 
@@ -47,6 +48,7 @@ public class AlarmStandardPersistence implements AlarmCallback {
             record.setStartTime(message.getStartTime());
             record.setTimeBucket(TimeBucket.getRecordTimeBucket(message.getStartTime()));
 
+            // 使用流式处理
             RecordStreamProcessor.getInstance().in(record);
         });
     }

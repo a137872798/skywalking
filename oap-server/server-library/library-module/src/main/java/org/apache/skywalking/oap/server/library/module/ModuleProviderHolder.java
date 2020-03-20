@@ -18,6 +18,9 @@
 
 package org.apache.skywalking.oap.server.library.module;
 
+/**
+ * 该接口代表 内部包含一个 模块服务holder 对象  实际上就是 ModuleProvider
+ */
 public interface ModuleProviderHolder {
 
     ModuleServiceHolder provider() throws DuplicateProviderException, ProviderNotFoundException;

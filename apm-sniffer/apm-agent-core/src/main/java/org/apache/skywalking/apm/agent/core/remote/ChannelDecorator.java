@@ -20,6 +20,22 @@ package org.apache.skywalking.apm.agent.core.remote;
 
 import io.grpc.Channel;
 
+/**
+ * gRPC 是google 开发的一个微服务框架 在功能上类似于dubbo
+ * gRPC 底层也是基于Netty实现
+ * 该接口就是装饰 skywalking内部的channel的
+ */
 public interface ChannelDecorator {
+
+    /**
+     * public abstract class Channel {
+     *     public Channel() {
+     *     }
+     *
+     *     public abstract <RequestT, ResponseT> ClientCall<RequestT, ResponseT> newCall(MethodDescriptor<RequestT, ResponseT> var1, CallOptions var2);
+     *
+     *     public abstract String authority();
+     * }
+     */
     Channel build(Channel channel);
 }

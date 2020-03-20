@@ -31,8 +31,13 @@ import org.apache.skywalking.apm.network.language.agent.UniqueId;
  * <p>
  * The <code>DistributedTraceId</code> contains only one string, and can NOT be reset, creating a new instance is the
  * only option.
+ * 分布式链路id  就是全局id 包装成的
  */
 public abstract class DistributedTraceId {
+
+    /**
+     * id 是全局范围的  由3部分组成
+     */
     private ID id;
 
     public DistributedTraceId(ID id) {

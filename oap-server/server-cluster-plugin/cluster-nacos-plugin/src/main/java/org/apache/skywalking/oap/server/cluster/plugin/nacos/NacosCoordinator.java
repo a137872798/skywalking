@@ -32,6 +32,9 @@ import org.apache.skywalking.oap.server.core.remote.client.Address;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
 import org.apache.skywalking.oap.server.telemetry.api.TelemetryRelatedContext;
 
+/**
+ * 通过该对象可以拉取整个集群范围内所有的节点
+ */
 public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
 
     private final NamingService namingService;
@@ -43,10 +46,16 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
         this.config = config;
     }
 
+    /**
+     * 开始拉取集群范围所有节点
+     * @return
+     */
     @Override
     public List<RemoteInstance> queryRemoteNodes() {
         List<RemoteInstance> result = new ArrayList<>();
         try {
+            // config.serviceName 就代表集群的名字  这样理解 配置中心基于 raft 协议 那么在单独的配置中心修改集群下节点时 确保在全局范围内一致
+            // 然后连接任意一个配置中心节点 直接获取配置就好 (集群中包含哪些节点就是从配置文件读取) 那么下面的操作就可以简洁的看作从配置文件中读取某集群下所有节点
             List<Instance> instances = namingService.selectInstances(config.getServiceName(), true);
             if (CollectionUtils.isNotEmpty(instances)) {
                 instances.forEach(instance -> {

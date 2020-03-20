@@ -22,6 +22,7 @@ import org.apache.skywalking.apm.agent.core.context.TracingContext;
 
 /**
  * The <code>LocalSpan</code> represents a normal tracing point, such as a local method.
+ * 代表不需要与远端进行交互
  */
 public class LocalSpan extends AbstractTracingSpan {
 

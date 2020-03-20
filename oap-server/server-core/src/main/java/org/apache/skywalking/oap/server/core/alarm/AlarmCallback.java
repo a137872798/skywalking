@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * Alarm call back will be called by alarm implementor, after it decided alarm should be sent.
+ * 该回调针对某个警告实现类
  */
 public interface AlarmCallback {
     void doAlarm(List<AlarmMessage> alarmMessage);

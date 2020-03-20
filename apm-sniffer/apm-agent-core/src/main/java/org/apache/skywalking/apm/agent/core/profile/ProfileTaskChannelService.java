@@ -56,19 +56,20 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
  * task list every {@link Config.Collector#GET_PROFILE_TASK_INTERVAL} second. 2. When there is a new profile task
  * snapshot, the data is transferred to the back end. use {@link LinkedBlockingQueue} 3. When profiling task finish, it
  * will send task finish status to backend
+ * TODO 这个类先不看 感觉是与其他组件通信的桥梁
  */
 @DefaultImplementor
 public class ProfileTaskChannelService implements BootService, Runnable, GRPCChannelListener {
     private static final ILog logger = LogManager.getLogger(ProfileTaskChannelService.class);
 
-    // channel status
+    // channel status  代表channel的连接状态 默认是未连接
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
 
-    // gRPC stub
+    // gRPC stub  存根方法 类似于 dubbo 中消费者端开放的api
     private volatile ProfileTaskGrpc.ProfileTaskBlockingStub profileTaskBlockingStub;
     private volatile ProfileTaskGrpc.ProfileTaskStub profileTaskStub;
 
-    // segment snapshot sender
+    // segment snapshot sender  存放线程堆栈信息的快照对象
     private final BlockingQueue<TracingThreadSnapshot> snapshotQueue = new LinkedBlockingQueue<>(
         Config.Profile.SNAPSHOT_TRANSPORT_BUFFER_SIZE);
     private volatile ScheduledFuture<?> sendSnapshotFuture;
@@ -80,6 +81,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
     public void run() {
         if (RemoteDownstreamConfig.Agent.SERVICE_ID != DictionaryUtil.nullValue()
             && RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID != DictionaryUtil.nullValue()) {
+            // 此时通道是可用的
             if (status == GRPCChannelStatus.CONNECTED) {
                 try {
                     ProfileTaskCommandQuery.Builder builder = ProfileTaskCommandQuery.newBuilder();
@@ -178,6 +180,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
 
     /**
      * add a new profiling snapshot, send to {@link #snapshotQueue}
+     * 每次 profiler 完成任务时 就会将快照信息保存到该对象中
      */
     public void addProfilingSnapshot(TracingThreadSnapshot snapshot) {
         snapshotQueue.add(snapshot);
@@ -185,6 +188,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
 
     /**
      * notify backend profile task has finish
+     * 当某个任务完成时触发
      */
     public void notifyProfileTaskFinish(ProfileTask task) {
         try {

@@ -26,6 +26,7 @@ import org.apache.skywalking.oap.server.library.module.ServiceNotProvidedExcepti
 /**
  * The recommendation default base implementor of Configuration module. The real implementor could extend this provider
  * to make a new one, easily.
+ * 提供了配置中心相关的信息
  */
 public abstract class AbstractConfigurationProvider extends ModuleProvider {
     private ConfigWatcherRegister configWatcherRegister;
@@ -53,6 +54,10 @@ public abstract class AbstractConfigurationProvider extends ModuleProvider {
         configWatcherRegister.start();
     }
 
+    /**
+     * 配置作为最基础的模块 不需要依赖其他模块 而Core模块需要依赖该模块
+     * @return
+     */
     @Override
     public String[] requiredModules() {
         return new String[0];

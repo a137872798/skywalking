@@ -24,6 +24,7 @@ import lombok.Setter;
 
 /**
  * Alarm message represents the details of each alarm.
+ * 警报的详细信息
  */
 @Setter(AccessLevel.PUBLIC)
 @Getter(AccessLevel.PUBLIC)
@@ -31,14 +32,14 @@ public class AlarmMessage {
 
     public static AlarmMessage NONE = new NoAlarm();
 
-    private int scopeId;
-    private String scope;
-    private String name;
-    private int id0;
-    private int id1;
-    private String ruleName;
-    private String alarmMessage;
-    private long startTime;
+    private int scopeId;  // 触发警报的区域id
+    private String scope; // 警报的区域
+    private String name; // 标识该警报消息的名称
+    private int id0;  //
+    private int id1;  // 2个id
+    private String ruleName;  // 规则名称
+    private String alarmMessage;  // 警报的具体信息
+    private long startTime;  // 触发警报的时间
 
     private static class NoAlarm extends AlarmMessage {
 

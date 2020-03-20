@@ -37,14 +37,17 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 
 /**
  * Add agent version(Described in MANIFEST.MF) to the connection establish stage.
+ * channel 装饰器的实现类
  */
 public class AgentIDDecorator implements ChannelDecorator {
     private static final ILog logger = LogManager.getLogger(AgentIDDecorator.class);
+    // 返回一个AsciiKey  该类继承自 Metadata.Key
     private static final Metadata.Key<String> AGENT_VERSION_HEAD_HEADER_NAME = Metadata.Key.of("Agent-Version", Metadata.ASCII_STRING_MARSHALLER);
     private String version = "UNKNOWN";
 
     public AgentIDDecorator() {
         try {
+            // 读取指定目录下所有的资源
             Enumeration<URL> resources = AgentIDDecorator.class.getClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
@@ -52,6 +55,7 @@ public class AgentIDDecorator implements ChannelDecorator {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);
                         Attributes mainAttribs = manifest.getMainAttributes();
+                        // 获取相关信息
                         String projectName = mainAttribs.getValue("Implementation-Vendor-Id");
                         if (projectName != null) {
                             if ("org.apache.skywalking".equals(projectName)) {
@@ -66,15 +70,24 @@ public class AgentIDDecorator implements ChannelDecorator {
         }
     }
 
+    /**
+     * 装饰 channel
+     * @param channel
+     * @return
+     */
     @Override
     public Channel build(Channel channel) {
+        // 使用一个拦截器加工channel
         return ClientInterceptors.intercept(channel, new ClientInterceptor() {
+
+            // 当调用 channel.newCall() 时会间接触发该方法
             @Override
             public <REQ, RESP> ClientCall<REQ, RESP> interceptCall(MethodDescriptor<REQ, RESP> method,
                 CallOptions options, Channel channel) {
                 return new ForwardingClientCall.SimpleForwardingClientCall<REQ, RESP>(channel.newCall(method, options)) {
                     @Override
                     public void start(Listener<RESP> responseListener, Metadata headers) {
+                        // 一顿操作就是在发送的请求头中增加了  Agent-Version
                         headers.put(AGENT_VERSION_HEAD_HEADER_NAME, version);
 
                         super.start(responseListener, headers);

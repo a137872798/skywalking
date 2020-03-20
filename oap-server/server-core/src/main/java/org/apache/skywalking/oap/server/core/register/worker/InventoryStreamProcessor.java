@@ -44,15 +44,18 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
  * inventory data in the storage.
  *
  * Method #create creates the workers and work flow for every inventory.
+ * 库存处理器
  */
 public class InventoryStreamProcessor implements StreamProcessor<RegisterSource> {
     /**
      * Singleton instance.
+     * 单例模式
      */
     private static final InventoryStreamProcessor PROCESSOR = new InventoryStreamProcessor();
 
     /**
      * Worker table hosts all entrance workers.
+     * 不同的数据源 对应不同的 worker
      */
     private Map<Class<? extends RegisterSource>, RegisterDistinctWorker> entryWorkers = new HashMap<>();
 
@@ -67,25 +70,31 @@ public class InventoryStreamProcessor implements StreamProcessor<RegisterSource>
     /**
      * Create the workers and work flow for every inventory.
      *
-     * @param moduleDefineHolder pointer of the module define.
-     * @param stream             definition of the inventory class.
+     * @param moduleDefineHolder pointer of the module define.    ModuleManager
+     * @param stream             definition of the inventory class.   携带的注解信息
      * @param inventoryClass     data type of the inventory.
      */
     @SuppressWarnings("unchecked")
     public void create(ModuleDefineHolder moduleDefineHolder, Stream stream,
                        Class<? extends RegisterSource> inventoryClass) {
+        // 找到存储层组件
         StorageDAO storageDAO = moduleDefineHolder.find(StorageModule.NAME).provider().getService(StorageDAO.class);
         IRegisterDAO registerDAO;
         try {
+            // registerSource 代表一类数据  这里通过builder().newInstance()  创建builder 实例 用于数据映射和转换
+            // 这里返回的是存储层实例了
             registerDAO = storageDAO.newRegisterDao(stream.builder().newInstance());
         } catch (InstantiationException | IllegalAccessException e) {
             throw new UnexpectedException("Create " + stream.builder().getSimpleName() + " register DAO failure.", e);
         }
 
+        // 这里获取 StorageModels
         IModelSetter modelSetter = moduleDefineHolder.find(CoreModule.NAME).provider().getService(IModelSetter.class);
+        // 保存映射关系
         Model model = modelSetter.putIfAbsent(
             inventoryClass, stream.scopeId(), new Storage(stream.name(), false, false, Downsampling.None), false);
 
+        // 生成相关的worker 对象
         RegisterPersistentWorker persistentWorker = new RegisterPersistentWorker(
             moduleDefineHolder, model.getName(), registerDAO, stream
             .scopeId());
@@ -94,8 +103,10 @@ public class InventoryStreamProcessor implements StreamProcessor<RegisterSource>
         IWorkerInstanceSetter workerInstanceSetter = moduleDefineHolder.find(CoreModule.NAME)
                                                                        .provider()
                                                                        .getService(IWorkerInstanceSetter.class);
+        // 这里添加 RegisterSource实例 与 worker的映射关系
         workerInstanceSetter.put(remoteReceiverWorkerName, persistentWorker, inventoryClass);
 
+        // 应该是负责主从机同步的 RegisterRemoteWorker 内部包含一个 remoteSenderService 负责将数据带到远端
         RegisterRemoteWorker remoteWorker = new RegisterRemoteWorker(moduleDefineHolder, remoteReceiverWorkerName);
 
         RegisterDistinctWorker distinctWorker = new RegisterDistinctWorker(moduleDefineHolder, remoteWorker);

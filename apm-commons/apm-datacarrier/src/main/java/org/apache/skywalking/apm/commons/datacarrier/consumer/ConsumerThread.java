@@ -23,9 +23,20 @@ import java.util.List;
 import org.apache.skywalking.apm.commons.datacarrier.buffer.Buffer;
 import org.apache.skywalking.apm.commons.datacarrier.buffer.QueueBuffer;
 
+/**
+ * 消费者线程对象
+ * @param <T>
+ */
 public class ConsumerThread<T> extends Thread {
+
+    /**
+     * 当前线程是否处在运行状态
+     */
     private volatile boolean running;
     private IConsumer<T> consumer;
+    /**
+     * 数据源对应 Buffers对象 而这里的数据又是从其他地方设置进来的
+     */
     private List<DataSource> dataSources;
     private long consumeCycle;
 
@@ -60,11 +71,17 @@ public class ConsumerThread<T> extends Thread {
 
         // consumer thread is going to stop
         // consume the last time
+        // 当退出时 会最后进行一次消费动作
         consume(consumeList);
 
         consumer.onExit();
     }
 
+    /**
+     * 消费当前保存的所有数据
+     * @param consumeList
+     * @return
+     */
     private boolean consume(List<T> consumeList) {
         for (DataSource dataSource : dataSources) {
             dataSource.obtain(consumeList);

@@ -25,6 +25,9 @@ import org.apache.skywalking.oap.server.core.cache.ServiceInstanceInventoryCache
 import org.apache.skywalking.oap.server.core.cache.ServiceInventoryCache;
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
 
+/**
+ * 将测量信息格式化输出
+ */
 @Setter
 public class MetricFormatter {
     private ServiceInventoryCache serviceInventoryCache;

@@ -51,8 +51,13 @@ public enum ConsumerPoolFactory {
     /**
      * Default pool provides the same capabilities as DataCarrier#consume(IConsumer, 1), which alloc one thread for one
      * DataCarrier.
+     * 消费池实例对象 负责从 Channels 中读取数据 并用IConsuemr进行处理
      */
     public static final ConsumerPool DEFAULT_POOL = new ConsumerPool() {
+
+        /**
+         * 处理的逻辑还是跟ConsumerDriver一致 不过这里做了池化处理
+         */
         private Map<Channels, ConsumeDriver> allDrivers = new HashMap<Channels, ConsumeDriver>();
 
         @Override

@@ -21,6 +21,7 @@ package org.apache.skywalking.oap.server.core.storage.model;
 /**
  * Short column name unsupported for now. No define in @Column annotation. The storage implementation need to use name
  * to do match.
+ * 某个列的描述信息
  */
 public class ColumnName {
     private String fullName;

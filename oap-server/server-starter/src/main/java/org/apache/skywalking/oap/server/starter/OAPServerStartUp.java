@@ -20,6 +20,7 @@ package org.apache.skywalking.oap.server.starter;
 
 /**
  * OAP starter
+ * OAP 启动器 通过一个 Bootstrap 来启动整个oap
  */
 public class OAPServerStartUp {
     public static void main(String[] args) {

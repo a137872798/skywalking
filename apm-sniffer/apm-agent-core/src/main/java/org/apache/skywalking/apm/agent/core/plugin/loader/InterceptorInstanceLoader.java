@@ -34,8 +34,14 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class InterceptorInstanceLoader {
 
+    /**
+     * 缓存已经创建的实例
+     */
     private static ConcurrentHashMap<String, Object> INSTANCE_CACHE = new ConcurrentHashMap<String, Object>();
     private static ReentrantLock INSTANCE_LOAD_LOCK = new ReentrantLock();
+    /**
+     * 每个父级类加载器 与对应的 AgentClassLoader
+     */
     private static Map<ClassLoader, ClassLoader> EXTEND_PLUGIN_CLASSLOADERS = new HashMap<ClassLoader, ClassLoader>();
 
     /**
@@ -52,6 +58,7 @@ public class InterceptorInstanceLoader {
         if (targetClassLoader == null) {
             targetClassLoader = InterceptorInstanceLoader.class.getClassLoader();
         }
+        // 这里生成的信息还包含了 xx类由哪个类加载器进行加载
         String instanceKey = className + "_OF_" + targetClassLoader.getClass()
                                                                    .getName() + "@" + Integer.toHexString(targetClassLoader
             .hashCode());
@@ -60,6 +67,7 @@ public class InterceptorInstanceLoader {
             INSTANCE_LOAD_LOCK.lock();
             ClassLoader pluginLoader;
             try {
+                // 将目标类加载器 包装成AgentClassLoader  该场景没有打破双亲委派模型
                 pluginLoader = EXTEND_PLUGIN_CLASSLOADERS.get(targetClassLoader);
                 if (pluginLoader == null) {
                     pluginLoader = new AgentClassLoader(targetClassLoader);

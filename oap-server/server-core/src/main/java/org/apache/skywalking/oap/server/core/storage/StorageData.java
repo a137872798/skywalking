@@ -20,9 +20,11 @@ package org.apache.skywalking.oap.server.core.storage;
 
 /**
  * Any persistent entity should be an implementation of this interface.
+ * 持久化的实体必须实现该接口
  */
 public interface StorageData {
     /**
+     * 确保某条记录在持久层是唯一的
      * @return the unique id used in any storage option.
      */
     String id();

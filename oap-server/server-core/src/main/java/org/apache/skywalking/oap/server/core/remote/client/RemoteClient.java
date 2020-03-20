@@ -20,6 +20,9 @@ package org.apache.skywalking.oap.server.core.remote.client;
 
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 
+/**
+ * 代表一个远端客户端
+ */
 public interface RemoteClient extends Comparable<RemoteClient> {
 
     Address getAddress();

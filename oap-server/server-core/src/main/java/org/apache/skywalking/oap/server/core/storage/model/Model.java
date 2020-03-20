@@ -29,6 +29,9 @@ public class Model {
     private final boolean capableOfTimeSeries;
     private final Downsampling downsampling;
     private final boolean deleteHistory;
+    /**
+     * 该模块涉及到的所有列
+     */
     private final List<ModelColumn> columns;
     private final int scopeId;
     private final boolean record;

@@ -35,11 +35,15 @@ import org.slf4j.LoggerFactory;
 /**
  * RemoteSenderService represents a gRPC client to send metrics from one OAP node to another through network. It
  * provides several routing mode to select target OAP node.
+ * 将数据发送到远端服务器
  */
 public class RemoteSenderService implements Service {
     private static final Logger logger = LoggerFactory.getLogger(RemoteSenderService.class);
 
     private final ModuleManager moduleManager;
+
+    // 均衡负载策略
+
     private final HashCodeSelector hashCodeSelector;
     private final ForeverFirstSelector foreverFirstSelector;
     private final RollingSelector rollingSelector;
@@ -54,11 +58,12 @@ public class RemoteSenderService implements Service {
     /**
      * Send data to the target based on the given selector
      *
-     * @param nextWorkName points to the worker to process the data when {@link RemoteServiceHandler} received.
+     * @param nextWorkName points to the worker to process the data when {@link RemoteServiceHandler} received.  这个远端名字就好像是一个节点
      * @param streamData   data to be sent
      * @param selector     strategy implementation to choose suitable OAP node.
      */
     public void send(String nextWorkName, StreamData streamData, Selector selector) {
+        // 该对象内部维护了 本节点所有的client  每个client 对应到一个远端server
         RemoteClientManager clientManager = moduleManager.find(CoreModule.NAME)
                                                          .provider()
                                                          .getService(RemoteClientManager.class);

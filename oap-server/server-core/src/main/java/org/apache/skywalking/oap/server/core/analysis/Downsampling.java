@@ -17,6 +17,9 @@
 
 package org.apache.skywalking.oap.server.core.analysis;
 
+/**
+ * 代表采样的指标
+ */
 public enum Downsampling {
     /**
      * None downsampling is for inventory

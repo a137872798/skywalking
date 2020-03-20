@@ -28,6 +28,9 @@ import org.apache.skywalking.oap.server.telemetry.api.CounterMetrics;
 import org.apache.skywalking.oap.server.telemetry.api.MetricsCreator;
 import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 
+/**
+ * 代表连接的地址 就是本机
+ */
 public class SelfRemoteClient implements RemoteClient {
 
     private final Address address;

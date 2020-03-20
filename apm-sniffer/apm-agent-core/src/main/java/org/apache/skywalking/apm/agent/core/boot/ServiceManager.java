@@ -30,6 +30,7 @@ import org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader;
 
 /**
  * The <code>ServiceManager</code> bases on {@link ServiceLoader}, load all {@link BootService} implementations.
+ * 该对象内部维护 所有需要启动的服务
  */
 public enum ServiceManager {
     INSTANCE;
@@ -42,6 +43,7 @@ public enum ServiceManager {
 
         prepare();
         startup();
+        // 安装完毕后就会触发该方法
         onComplete();
     }
 
@@ -139,6 +141,10 @@ public enum ServiceManager {
         return (T) bootedServices.get(serviceClass);
     }
 
+    /**
+     * 通过spi机制加载所有 BootService 实现类
+     * @param allServices
+     */
     void load(List<BootService> allServices) {
         for (final BootService bootService : ServiceLoader.load(BootService.class, AgentClassLoader.getDefault())) {
             allServices.add(bootService);

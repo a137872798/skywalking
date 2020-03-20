@@ -34,6 +34,7 @@ public class DatabaseStatementDispatcher implements SourceDispatcher<DatabaseSlo
         statement.setTimeBucket(source.getTimeBucket());
         statement.setTraceId(source.getTraceId());
 
+        // 将某个会话信息转发到某个流式处理器上
         TopNStreamProcessor.getInstance().in(statement);
     }
 }

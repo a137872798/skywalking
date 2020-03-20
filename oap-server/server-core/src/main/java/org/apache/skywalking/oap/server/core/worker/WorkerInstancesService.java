@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Worker Instance Service hosts all remote handler workers with the stream data type.
+ * 该对象维护了远端 worker 的信息
  */
 public class WorkerInstancesService implements IWorkerInstanceSetter, IWorkerInstanceGetter {
     private static final Logger logger = LoggerFactory.getLogger(WorkerInstancesService.class);
@@ -42,6 +43,12 @@ public class WorkerInstancesService implements IWorkerInstanceSetter, IWorkerIns
         return instances.get(nextWorkerName);
     }
 
+    /**
+     *
+     * @param remoteReceiverWorkName worker name   远端工作者名称
+     * @param instance The worker instance processes the given streamDataClass.   worker实例对象
+     * @param streamDataClass Type of metrics.     某种数据实例类
+     */
     @Override
     public void put(String remoteReceiverWorkName, AbstractWorker instance,
         Class<? extends StreamData> streamDataClass) {

@@ -25,9 +25,14 @@ import java.util.List;
 
 /**
  * Clear the service metadata cache and other metadata caches belong to it, and re-register them.
+ * 代表重置服务的命令
  */
 public class ServiceResetCommand extends BaseCommand implements Serializable, Deserializable<ServiceResetCommand> {
     public static final Deserializable<ServiceResetCommand> DESERIALIZER = new ServiceResetCommand("");
+
+    /**
+     * 代表命令的名称
+     */
     public static final String NAME = "ServiceMetadataReset";
 
     public ServiceResetCommand(String serialNumber) {

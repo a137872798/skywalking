@@ -26,10 +26,12 @@ import org.apache.skywalking.apm.agent.core.dictionary.DictionaryUtil;
 /**
  * The <code>ContextSnapshot</code> is a snapshot for current context. The snapshot carries the info for building
  * reference between two segments in two thread, but have a causal relationship.
+ * 当前上下文的快照
  */
 public class ContextSnapshot {
     /**
      * trace segment id of the parent trace segment.
+     * 一个完整的链路应该是 由多个段组成的 返回的快照对应某个段的信息
      */
     private ID traceSegmentId;
 
@@ -47,8 +49,16 @@ public class ContextSnapshot {
      */
     private DistributedTraceId primaryDistributedTraceId;
 
+    /**
+     * 应用实例的入口
+     */
     private int entryApplicationInstanceId = DictionaryUtil.nullValue();
 
+    /**
+     * @param traceSegmentId 推测该id 父级段id
+     * @param spanId  父span
+     * @param distributedTraceIds 本次整个链路中涉及到的所有id
+     */
     ContextSnapshot(ID traceSegmentId, int spanId, List<DistributedTraceId> distributedTraceIds) {
         this.traceSegmentId = traceSegmentId;
         this.spanId = spanId;
@@ -73,6 +83,10 @@ public class ContextSnapshot {
         this.parentOperationName = parentOperationId + "";
     }
 
+    /**
+     * 获取整个链路中 涉及到的所有链路的首个id
+     * @return
+     */
     public DistributedTraceId getDistributedTraceId() {
         return primaryDistributedTraceId;
     }

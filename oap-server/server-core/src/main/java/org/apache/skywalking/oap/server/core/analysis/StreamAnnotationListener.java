@@ -30,9 +30,13 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
 
 /**
  * Stream annotation listener, process the class with {@link Stream} annotation.
+ * 该对象就是用于监听 @Stream 注解的
  */
 public class StreamAnnotationListener implements AnnotationListener {
 
+    /**
+     * 对应 moduleManager  用于统一加载所有的module 以及加载配置进行装配 以及创建provider 并启动
+     */
     private final ModuleDefineHolder moduleDefineHolder;
 
     public StreamAnnotationListener(ModuleDefineHolder moduleDefineHolder) {
@@ -44,13 +48,20 @@ public class StreamAnnotationListener implements AnnotationListener {
         return Stream.class;
     }
 
+
+    /**
+     * 当感知到某个类 携带 @Stream 时
+     * @param aClass
+     */
     @SuppressWarnings("unchecked")
     @Override
     public void notify(Class aClass) {
         if (aClass.isAnnotationPresent(Stream.class)) {
             Stream stream = (Stream) aClass.getAnnotation(Stream.class);
 
+            // 处理器本身是单例对象 内部维护了一些映射关系 针对不同的数据源 走不同的processor
             if (stream.processor().equals(InventoryStreamProcessor.class)) {
+                // 添加一组映射关系     这里是处理 RegisterSource 类型的数据
                 InventoryStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
             } else if (stream.processor().equals(RecordStreamProcessor.class)) {
                 RecordStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);

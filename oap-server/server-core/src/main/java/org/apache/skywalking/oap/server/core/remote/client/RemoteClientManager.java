@@ -49,15 +49,28 @@ import org.slf4j.LoggerFactory;
 /**
  * This class manages the connections between OAP servers. There is a task schedule that will automatically query a
  * server list from the cluster module. Such as Zookeeper cluster module or Kubernetes cluster module.
+ * 该对象用于管理所有客户端 每个客户端连接到不同的server
  */
 public class RemoteClientManager implements Service {
 
     private static final Logger logger = LoggerFactory.getLogger(RemoteClientManager.class);
 
     private final ModuleDefineHolder moduleDefineHolder;
+    /**
+     * 该对象负责查询当前集群有哪些节点
+     */
     private ClusterNodesQuery clusterNodesQuery;
+    /**
+     * 连接到集群 其他节点的client
+     */
     private volatile List<RemoteClient> usingClients;
+    /**
+     * 有关使用率的 测量数据  该对象相当于一个适配器 底层是第三方的统计类
+     */
     private GaugeMetrics gauge;
+    /**
+     * 连接到远端的超时时间
+     */
     private int remoteTimeout;
 
     /**
@@ -72,6 +85,9 @@ public class RemoteClientManager implements Service {
         this.remoteTimeout = remoteTimeout;
     }
 
+    /**
+     * 启动该服务时 从配置中心拉取最新的集群信息 并建立连接
+     */
     public void start() {
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(this::refresh, 1, 5, TimeUnit.SECONDS);
     }
@@ -81,6 +97,7 @@ public class RemoteClientManager implements Service {
      * orderly because of each of the server will send stream data to each other by hash code.
      */
     void refresh() {
+        // 通过遥感模块 创建统计数据
         if (gauge == null) {
             gauge = moduleDefineHolder.find(TelemetryModule.NAME)
                                       .provider()
@@ -102,23 +119,28 @@ public class RemoteClientManager implements Service {
                 logger.debug("Refresh remote nodes collection.");
             }
 
+            // 拉取集群内其他节点信息  也就是没有中心的服务器 而是将数据同步到其他节点
             List<RemoteInstance> instanceList = clusterNodesQuery.queryRemoteNodes();
             instanceList = distinct(instanceList);
             Collections.sort(instanceList);
 
+            // 更新当前统计数据  推测还会跟时间挂钩 比如啥时候更新的数据 这样才好展示一个完整的图表
             gauge.setValue(instanceList.size());
 
             if (logger.isDebugEnabled()) {
                 instanceList.forEach(instance -> logger.debug("Cluster instance: {}", instance.toString()));
             }
 
+            // 判断 集群内节点是否发生了变化
             if (!compare(instanceList)) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("ReBuilding remote clients.");
                 }
+                // 发生变化时 重建通往其他节点的连接
                 reBuildRemoteClients(instanceList);
             }
 
+            // 打印当前客户端信息
             printRemoteClientList();
         } catch (Throwable t) {
             logger.error(t.getMessage(), t);
@@ -143,7 +165,8 @@ public class RemoteClientManager implements Service {
      * information in the cluster.
      *
      * @param instanceList the instances query from cluster module.
-     * @return distinct remote instances
+     * @return distinct remote instances’
+     * 去重
      */
     private List<RemoteInstance> distinct(List<RemoteInstance> instanceList) {
         Set<Address> addresses = new HashSet<>();
@@ -167,22 +190,29 @@ public class RemoteClientManager implements Service {
      * Create a gRPC client for remote instance except for self-instance.
      *
      * @param remoteInstances Remote instance collection by query cluster config.
+     *                        重建client连接
      */
     private void reBuildRemoteClients(List<RemoteInstance> remoteInstances) {
         final Map<Address, RemoteClientAction> remoteClientCollection = this.usingClients.stream()
-                                                                                         .collect(Collectors.toMap(RemoteClient::getAddress, client -> new RemoteClientAction(client, Action.Close)));
+                                                                                         .collect(Collectors.toMap(RemoteClient::getAddress,
+                                                                                                 // 将每个client 对象与一个关闭动作封装在一起
+                                                                                                 client -> new RemoteClientAction(client, Action.Close)));
 
+        // 生成一组 创建动作
         final Map<Address, RemoteClientAction> latestRemoteClients = remoteInstances.stream()
                                                                                     .collect(Collectors.toMap(RemoteInstance::getAddress, remote -> new RemoteClientAction(null, Action.Create)));
 
+        // 获取交集
         final Set<Address> unChangeAddresses = Sets.intersection(remoteClientCollection.keySet(), latestRemoteClients.keySet());
 
         unChangeAddresses.stream()
                          .filter(remoteClientCollection::containsKey)
+                            // 更新成 unchanged 动作
                          .forEach(unChangeAddress -> remoteClientCollection.get(unChangeAddress)
                                                                            .setAction(Action.Unchanged));
 
         // make the latestRemoteClients including the new clients only
+        // 移除掉之前已经存在的
         unChangeAddresses.forEach(latestRemoteClients::remove);
         remoteClientCollection.putAll(latestRemoteClients);
 
@@ -193,9 +223,11 @@ public class RemoteClientManager implements Service {
                     newRemoteClients.add(clientAction.getRemoteClient());
                     break;
                 case Create:
+                    // 如果该节点就是自身 创建一个虚假的client
                     if (address.isSelf()) {
                         RemoteClient client = new SelfRemoteClient(moduleDefineHolder, address);
                         newRemoteClients.add(client);
+                    // 生成连接到对端的client
                     } else {
                         RemoteClient client = new GRPCRemoteClient(moduleDefineHolder, address, 1, 3000, remoteTimeout);
                         client.connect();
@@ -212,6 +244,7 @@ public class RemoteClientManager implements Service {
         remoteClientCollection.values()
                               .stream()
                               .filter(remoteClientAction -> remoteClientAction.getAction().equals(Action.Close))
+                                // 其余client 关闭
                               .forEach(remoteClientAction -> remoteClientAction.getRemoteClient().close());
     }
 

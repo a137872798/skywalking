@@ -24,22 +24,22 @@ package org.apache.skywalking.apm.network.constants;
 public class ProfileConstants {
 
     /**
-     * Monitor duration must greater than 1 minutes
+     * Monitor duration must greater than 1 minutes  一个ThreadProfiler 自创建到允许收集数据的时间必须超过一分钟
      */
     public static final int TASK_DURATION_MIN_MINUTE = 1;
 
     /**
-     * The duration of the monitoring task cannot be greater than 15 minutes
+     * The duration of the monitoring task cannot be greater than 15 minutes  不能超过15分钟
      */
     public static final int TASK_DURATION_MAX_MINUTE = 15;
 
     /**
-     * Dump period must be greater than or equals 10 milliseconds
+     * Dump period must be greater than or equals 10 milliseconds  每次重新收集数据的时间间隔不能低于10毫秒
      */
     public static final int TASK_DUMP_PERIOD_MIN_MILLIS = 10;
 
     /**
-     * Max sampling count must less than 10
+     * Max sampling count must less than 10  样品数量不能超过10个
      */
     public static final int TASK_MAX_SAMPLING_COUNT = 10;
 

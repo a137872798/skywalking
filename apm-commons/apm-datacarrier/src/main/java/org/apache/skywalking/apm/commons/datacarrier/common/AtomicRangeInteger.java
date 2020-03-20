@@ -23,6 +23,9 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class AtomicRangeInteger extends Number implements Serializable {
     private static final long serialVersionUID = -4099792402691141643L;
+    /**
+     * 一个原子数组
+     */
     private AtomicIntegerArray values;
 
     private static final int VALUE_OFFSET = 15;
@@ -30,8 +33,14 @@ public class AtomicRangeInteger extends Number implements Serializable {
     private int startValue;
     private int endValue;
 
+    /**
+     * 该数组最大长度为 maxValue
+     * @param startValue
+     * @param maxValue
+     */
     public AtomicRangeInteger(int startValue, int maxValue) {
         this.values = new AtomicIntegerArray(31);
+        // 在下标为15的位置设置 初始值
         this.values.set(VALUE_OFFSET, startValue);
         this.startValue = startValue;
         this.endValue = maxValue - 1;
@@ -40,7 +49,9 @@ public class AtomicRangeInteger extends Number implements Serializable {
     public final int getAndIncrement() {
         int next;
         do {
+            // 获取下标为15的位置的值
             next = this.values.incrementAndGet(VALUE_OFFSET);
+            // 当本次添加超过了 最大值时 将值重置为起始值
             if (next > endValue && this.values.compareAndSet(VALUE_OFFSET, next, startValue)) {
                 return endValue;
             }

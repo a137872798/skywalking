@@ -24,10 +24,16 @@ import org.apache.skywalking.apm.network.language.profile.ThreadStack;
 
 import java.util.List;
 
+/**
+ * 线程栈信息的快照对象
+ */
 public class TracingThreadSnapshot {
 
     // thread profiler
     private final String taskId;
+    /**
+     * 当前线程栈在整个链路调用中的  段id
+     */
     private final ID traceSegmentId;
 
     // dump info
@@ -45,6 +51,7 @@ public class TracingThreadSnapshot {
 
     /**
      * transform to gRPC data
+     * 将当前信息转换成 protobuf 格式的数据
      */
     public ThreadSnapshot transform() {
         final ThreadSnapshot.Builder builder = ThreadSnapshot.newBuilder();

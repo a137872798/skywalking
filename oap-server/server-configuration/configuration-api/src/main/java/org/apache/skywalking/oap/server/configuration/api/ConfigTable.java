@@ -26,6 +26,7 @@ import lombok.ToString;
 
 /**
  * ConfigTable contains all config.
+ * 从配置中心拉取到的最新配置
  */
 @ToString
 public class ConfigTable {

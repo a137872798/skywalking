@@ -25,10 +25,18 @@ import java.util.LinkedList;
 import java.util.List;
 import org.apache.skywalking.oap.server.core.storage.ComparableStorageData;
 
+/**
+ * 数据容器 而缓存就是该对象的一层外包装
+ * @param <STORAGE_DATA>
+ */
 public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageData> implements SWCollection<STORAGE_DATA> {
 
+    /**
+     * 内部实质是一个hashMap key 和 value 同类型 且 一个key 对应多个value
+     */
     private final HashMap<STORAGE_DATA, LinkedList<STORAGE_DATA>> data;
     private final int limitedSize;
+    // 是否正在写入 以及 读取 推测使用这些标识来解决并发问题 比如读取标识后再决定是否允许读取/插入  那么为什么不使用并发容器呢???
     private volatile boolean writing;
     private volatile boolean reading;
 
@@ -89,27 +97,36 @@ public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageDat
         throw new UnsupportedOperationException("Limited size data collection doesn't support get operation.");
     }
 
+    /**
+     * 将某种类型的数据保存到容器中
+     * @param value
+     */
     @Override
     public void put(STORAGE_DATA value) {
+        // 首先将value 作为key 读取数据
         LinkedList<STORAGE_DATA> storageDataList = this.data.get(value);
         if (storageDataList == null) {
             storageDataList = new LinkedList<>();
             data.put(value, storageDataList);
         }
 
+        // 在没有达到限制值前 可以正常添加
         if (storageDataList.size() < limitedSize) {
             storageDataList.add(value);
             return;
         }
 
+        // 从头开始遍历每个值
         for (int i = 0; i < storageDataList.size(); i++) {
             STORAGE_DATA storageData = storageDataList.get(i);
             if (value.compareTo(storageData) <= 0) {
                 if (i == 0) {
                     // input value is less than the smallest in top N list, ignore
+                    // 当前值已经是最小的了 就不允许加入到容器中
                 } else {
                     // Remove the smallest in top N list
                     // add the current value into the right position
+                    // 这个值会挤掉 某个更小的值
                     storageDataList.add(i, value);
                     storageDataList.removeFirst();
                 }
@@ -117,7 +134,7 @@ public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageDat
             }
         }
 
-        // Add the value as biggest in top N list
+        // Add the value as biggest in top N list  代表写入的值最大  那么就移除第一个值
         storageDataList.addLast(value);
         storageDataList.removeFirst();
     }

@@ -49,6 +49,9 @@ import org.apache.skywalking.oap.server.library.util.GRPCStreamStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 该对象就是 GRPCExporterProvider 提供的服务(Service)
+ */
 public class GRPCExporter extends MetricFormatter implements MetricValuesExportService, IConsumer<ExportData> {
     private static final Logger logger = LoggerFactory.getLogger(GRPCExporter.class);
 
@@ -56,26 +59,42 @@ public class GRPCExporter extends MetricFormatter implements MetricValuesExportS
     private final MetricExportServiceGrpc.MetricExportServiceStub exportServiceFutureStub;
     private final MetricExportServiceGrpc.MetricExportServiceBlockingStub blockingStub;
     private final DataCarrier exportBuffer;
+    /**
+     * 代表感兴趣的测量数据名
+     */
     private final Set<String> subscriptionSet;
 
+    /**
+     * 根据相关对象生成 Service
+     * @param setting
+     */
     public GRPCExporter(GRPCExporterSetting setting) {
         this.setting = setting;
+        // 将信息报告到远端服务器
         GRPCClient client = new GRPCClient(setting.getTargetHost(), setting.getTargetPort());
         client.connect();
         ManagedChannel channel = client.getChannel();
+        // 这里创建存根对象 gRPC 发起请求时
         exportServiceFutureStub = MetricExportServiceGrpc.newStub(channel);
         blockingStub = MetricExportServiceGrpc.newBlockingStub(channel);
+        // 该对象允许存储数据 以及消费数据
         exportBuffer = new DataCarrier<ExportData>(setting.getBufferChannelNum(), setting.getBufferChannelSize());
+        // 将本对象自身作为消费者 处理填充到 exportBuffer的数据   1 代表生成一条 ConsumerThread 对填充进去的数据进行消费
         exportBuffer.consume(this, 1, 200);
         subscriptionSet = new HashSet<>();
     }
 
+    /**
+     * 当感知到某个事件时 外部通过调用ModuleManager.find.provider.getService.export 处理
+     * @param event
+     */
     @Override
     public void export(ExportEvent event) {
         if (ExportEvent.EventType.TOTAL == event.getType()) {
             Metrics metrics = event.getMetrics();
             if (metrics instanceof WithMetadata) {
                 MetricsMetaInfo meta = ((WithMetadata) metrics).getMeta();
+                // 没有设置订阅者 或者订阅了该数据 都会将数据设置到buffer中 这样就会间接触发 consumer()
                 if (subscriptionSet.size() == 0 || subscriptionSet.contains(meta.getMetricsName())) {
                     exportBuffer.produce(new ExportData(meta, metrics));
                 }
@@ -83,7 +102,11 @@ public class GRPCExporter extends MetricFormatter implements MetricValuesExportS
         }
     }
 
+    /**
+     * 当启动时  通过访问服务端 获取到感兴趣的测量数据
+     */
     public void initSubscriptionList() {
+        // 应该是代表发起远端调用 最大等待时长为10秒
         SubscriptionsResp subscription = blockingStub.withDeadlineAfter(10, TimeUnit.SECONDS)
                                                      .subscription(SubscriptionReq.newBuilder().build());
         subscription.getMetricNamesList().forEach(subscriptionSet::add);
@@ -95,6 +118,10 @@ public class GRPCExporter extends MetricFormatter implements MetricValuesExportS
 
     }
 
+    /**
+     * 当获取到某组待报告数据是  序列化后发送到 server
+     * @param data
+     */
     @Override
     public void consume(List<ExportData> data) {
         if (data.size() == 0) {
@@ -102,6 +129,7 @@ public class GRPCExporter extends MetricFormatter implements MetricValuesExportS
         }
 
         GRPCStreamStatus status = new GRPCStreamStatus();
+        // 这里将数据上报到server
         StreamObserver<ExportMetricValue> streamObserver = exportServiceFutureStub.withDeadlineAfter(
             10, TimeUnit.SECONDS)
                                                                                   .export(

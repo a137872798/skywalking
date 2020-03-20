@@ -22,6 +22,9 @@ import org.apache.skywalking.oap.server.core.analysis.SourceDispatcher;
 import org.apache.skywalking.oap.server.core.analysis.worker.MetricsStreamProcessor;
 import org.apache.skywalking.oap.server.core.source.EndpointRelation;
 
+/**
+ * 接收某种数据体 并转换成 EndpointRelation 之后通过流式处理器进行处理
+ */
 public class EndpointCallRelationDispatcher implements SourceDispatcher<EndpointRelation> {
 
     @Override

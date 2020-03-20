@@ -31,6 +31,9 @@ import org.apache.skywalking.apm.commons.datacarrier.buffer.Channels;
  * In typical case, the number of {@link MultipleChannelsConsumer} should be less than the number of channels.
  */
 public class BulkConsumePool implements ConsumerPool {
+    /**
+     * 这里每个消费者 对应多个 Channels
+     */
     private List<MultipleChannelsConsumer> allConsumers;
     private volatile boolean isStarted = false;
 

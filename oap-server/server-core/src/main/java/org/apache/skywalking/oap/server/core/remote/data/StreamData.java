@@ -22,8 +22,14 @@ import org.apache.skywalking.oap.server.core.analysis.data.QueueData;
 import org.apache.skywalking.oap.server.core.remote.Deserializable;
 import org.apache.skywalking.oap.server.core.remote.Serializable;
 
+/**
+ * 代表流式数据  他们会通过 DataCarrier 进行消费 所以每次接收到的可能是一组数据
+ */
 public abstract class StreamData implements QueueData, Serializable, Deserializable {
 
+    /**
+     * 本对象是否是流的末尾
+     */
     private boolean endOfBatch = false;
 
     @Override

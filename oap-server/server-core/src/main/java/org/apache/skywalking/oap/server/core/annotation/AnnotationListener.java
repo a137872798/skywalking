@@ -20,6 +20,9 @@ package org.apache.skywalking.oap.server.core.annotation;
 
 import java.lang.annotation.Annotation;
 
+/**
+ * 针对哪种注解起反应的监听器
+ */
 public interface AnnotationListener {
 
     Class<? extends Annotation> annotation();

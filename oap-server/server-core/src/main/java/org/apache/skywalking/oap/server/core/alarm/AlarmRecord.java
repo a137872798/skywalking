@@ -33,12 +33,16 @@ import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 
 import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.ALARM;
 
+/**
+ * 报警信息的数据实体
+ */
 @Getter
 @Setter
 @ScopeDeclaration(id = ALARM, name = "Alarm")
 @Stream(name = AlarmRecord.INDEX_NAME, scopeId = DefaultScopeDefine.ALARM, builder = AlarmRecord.Builder.class, processor = RecordStreamProcessor.class)
 public class AlarmRecord extends Record {
 
+    // 这里是字段的描述信息 使用静态变量节省内存开销
     public static final String INDEX_NAME = "alarm_record";
     public static final String SCOPE = "scope";
     public static final String NAME = "name";

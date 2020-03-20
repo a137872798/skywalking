@@ -21,6 +21,9 @@ package org.apache.skywalking.oap.server.core.cluster;
 import java.util.List;
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * 查询集群内所有节点
+ */
 public interface ClusterNodesQuery extends Service {
 
     List<RemoteInstance> queryRemoteNodes();

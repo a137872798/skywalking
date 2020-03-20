@@ -24,6 +24,7 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefine;
  * Alarm module define the main bridge entrance of the alarm implementor.
  * <p>
  * SkyWalking supports alarm implementation pluggable.
+ * 代表警报模块只包含一个 测量数据通知的服务
  */
 public class AlarmModule extends ModuleDefine {
     public static final String NAME = "alarm";

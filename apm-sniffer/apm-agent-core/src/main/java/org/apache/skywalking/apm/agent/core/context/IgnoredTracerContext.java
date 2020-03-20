@@ -28,13 +28,22 @@ import org.apache.skywalking.apm.agent.core.context.trace.NoopSpan;
  * integer depth field.
  * <p>
  * All operations through this will be ignored, and keep the memory and gc cost as low as possible.
+ * 一个空的上下文对象
  */
 public class IgnoredTracerContext implements AbstractTracerContext {
+
+    /**
+     * 一个空的span 对象 没有start 和 stop 的概念
+     */
     private static final NoopSpan NOOP_SPAN = new NoopSpan();
 
+    /**
+     * 当前调用栈深度
+     */
     private int stackDepth;
 
     public IgnoredTracerContext() {
+        // 初始状态 调用栈深度为0
         this.stackDepth = 0;
     }
 
@@ -48,6 +57,10 @@ public class IgnoredTracerContext implements AbstractTracerContext {
 
     }
 
+    /**
+     * 生成链路快照信息
+     * @return
+     */
     @Override
     public ContextSnapshot capture() {
         return new ContextSnapshot(null, -1, null);
@@ -105,6 +118,9 @@ public class IgnoredTracerContext implements AbstractTracerContext {
 
     }
 
+    /**
+     * 用于监听某个 ignoredTracerContext 的终止状态
+     */
     public static class ListenerManager {
         private static List<IgnoreTracerContextListener> LISTENERS = new LinkedList<>();
 

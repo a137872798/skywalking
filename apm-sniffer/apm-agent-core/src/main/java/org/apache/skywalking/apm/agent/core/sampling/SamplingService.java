@@ -38,6 +38,8 @@ import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
  * send all of them to collector, if SAMPLING is on.
  * <p>
  * By default, SAMPLING is on, and  {@link Config.Agent#SAMPLE_N_PER_3_SECS }
+ * 该对象接收 operate_name 并生成上下文对象
+ * 用于控制单位时间(3s)内生成的链路上下文数量
  */
 @DefaultImplementor
 public class SamplingService implements BootService {
@@ -52,8 +54,12 @@ public class SamplingService implements BootService {
 
     }
 
+    /**
+     * 启动的时候开启一个线程池
+     */
     @Override
     public void boot() {
+        // 先关闭上次的任务
         if (scheduledFuture != null) {
             /*
              * If {@link #boot()} invokes twice, mostly in test cases,
@@ -61,11 +67,13 @@ public class SamplingService implements BootService {
              */
             scheduledFuture.cancel(true);
         }
+        // 每3秒允许生成多少样品数
         if (Config.Agent.SAMPLE_N_PER_3_SECS > 0) {
             on = true;
             this.resetSamplingFactor();
             ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(
                 new DefaultNamedThreadFactory("SamplingService"));
+            // 每3秒重置 SamplingFactor
             scheduledFuture = service.scheduleAtFixedRate(new RunnableWithExceptionProtection(
                 this::resetSamplingFactor, t -> logger.error("unexpected exception.", t)), 0, 3, TimeUnit.SECONDS);
             logger.debug(
@@ -91,9 +99,11 @@ public class SamplingService implements BootService {
     public boolean trySampling() {
         if (on) {
             int factor = samplingFactorHolder.get();
+            // 生成的样品数 没有达到限制值
             if (factor < Config.Agent.SAMPLE_N_PER_3_SECS) {
                 return samplingFactorHolder.compareAndSet(factor, factor + 1);
             } else {
+                // 否则创建失败
                 return false;
             }
         }

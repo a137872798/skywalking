@@ -36,9 +36,18 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Dictionary.ENDPOI
 public enum EndpointNameDictionary {
     INSTANCE;
 
+    /**
+     * key 包含了 endpoint 和 serviceId   value 对应operationId
+     */
     private Map<OperationNameKey, Integer> endpointDictionary = new ConcurrentHashMap<>();
     private Set<OperationNameKey> unRegisterEndpoints = ConcurrentHashMap.newKeySet();
 
+    /**
+     * 当没有通过 endpoint找到serviceId 时 选择添加该映射关系
+     * @param serviceId
+     * @param endpointName
+     * @return
+     */
     public PossibleFound findOrPrepare4Register(int serviceId, String endpointName) {
         return find0(serviceId, endpointName, true);
     }
@@ -47,7 +56,15 @@ public enum EndpointNameDictionary {
         return find0(serviceId, endpointName, false);
     }
 
+    /**
+     * 通过endpoint 信息查找serviceId  如果没有找到 选择将该映射关系保存到容器中
+     * @param serviceId
+     * @param endpointName
+     * @param registerWhenNotFound
+     * @return
+     */
     private PossibleFound find0(int serviceId, String endpointName, boolean registerWhenNotFound) {
+        // 当传入无效的端点信息时 返回一个notFount
         if (endpointName == null || endpointName.length() == 0) {
             return new NotFound();
         }
@@ -56,6 +73,7 @@ public enum EndpointNameDictionary {
         if (operationId != null) {
             return new Found(operationId);
         } else {
+            // 先选择添加到一个容器中 之后在一个定时任务中 通过批量发送来减少消耗的网络带宽
             if (registerWhenNotFound && endpointDictionary.size() + unRegisterEndpoints.size() < ENDPOINT_NAME_BUFFER_SIZE) {
                 unRegisterEndpoints.add(key);
             }
@@ -65,6 +83,7 @@ public enum EndpointNameDictionary {
 
     public void syncRemoteDictionary(RegisterGrpc.RegisterBlockingStub serviceNameDiscoveryServiceBlockingStub) {
         if (unRegisterEndpoints.size() > 0) {
+            // 抽取未注册的信息 并转换成 protobuf 的格式 看来是要访问某个服务器
             Endpoints.Builder builder = Endpoints.newBuilder();
             for (OperationNameKey operationNameKey : unRegisterEndpoints) {
                 Endpoint endpoint = Endpoint.newBuilder()
@@ -74,8 +93,10 @@ public enum EndpointNameDictionary {
                                             .build();
                 builder.addEndpoints(endpoint);
             }
+            // 发起一个注册请求
             EndpointMapping serviceNameMappingCollection = serviceNameDiscoveryServiceBlockingStub.doEndpointRegister(builder
                 .build());
+            // 如果返回的结果中 包含这些数据 那么就可以成功转移
             if (serviceNameMappingCollection.getElementsCount() > 0) {
                 for (EndpointMappingElement element : serviceNameMappingCollection.getElementsList()) {
                     OperationNameKey key = new OperationNameKey(element.getServiceId(), element.getEndpointName());

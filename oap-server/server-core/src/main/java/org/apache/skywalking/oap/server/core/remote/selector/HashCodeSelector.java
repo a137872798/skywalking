@@ -27,6 +27,7 @@ public class HashCodeSelector implements RemoteClientSelector {
     @Override
     public RemoteClient select(List<RemoteClient> clients, StreamData streamData) {
         int size = clients.size();
+        // 某些数据源的 remoteHashCode 是0 也就是总会发往某一个节点
         int selectIndex = Math.abs(streamData.remoteHashCode()) % size;
         return clients.get(selectIndex);
     }

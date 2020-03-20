@@ -20,6 +20,7 @@ package org.apache.skywalking.apm.agent.core.logging.core;
 
 /**
  * The Converter, It is used to convert the LogEvent to the String.
+ * 将某个日志信息 格式化输出
  */
 public interface Converter {
 

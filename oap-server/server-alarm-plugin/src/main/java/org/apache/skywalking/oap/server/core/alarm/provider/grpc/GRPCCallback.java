@@ -55,6 +55,10 @@ public class GRPCCallback implements AlarmCallback {
         }
     }
 
+    /**
+     * 如果配置中 包含 grpc的目标地址 那么将数据发送过去
+     * @param alarmMessage
+     */
     @Override
     public void doAlarm(List<AlarmMessage> alarmMessage) {
 

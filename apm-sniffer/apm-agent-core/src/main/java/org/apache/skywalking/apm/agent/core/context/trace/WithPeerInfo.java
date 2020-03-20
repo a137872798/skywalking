@@ -18,6 +18,9 @@
 
 package org.apache.skywalking.apm.agent.core.context.trace;
 
+/**
+ * 返回对端信息
+ */
 public interface WithPeerInfo {
     int getPeerId();
 

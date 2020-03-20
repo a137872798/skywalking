@@ -34,6 +34,14 @@ public class PrometheusMetricsCreator implements MetricsCreator {
         return new PrometheusCounterMetrics(name, tips, tagKeys, tagValues);
     }
 
+    /**
+     * 通过指定某个数据标签 生成有关使用率的统计数据
+     * @param name  如 : uptime  运行时间
+     * @param tips  如 : oap server start up time  oap启动耗时
+     * @param tagKeys
+     * @param tagValues
+     * @return
+     */
     @Override
     public GaugeMetrics createGauge(String name, String tips, MetricsTag.Keys tagKeys, MetricsTag.Values tagValues) {
         return new PrometheusGaugeMetrics(name, tips, tagKeys, tagValues);

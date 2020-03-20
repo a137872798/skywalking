@@ -20,9 +20,9 @@ package org.apache.skywalking.apm.agent.core.profile;
 
 public enum ProfilingStatus {
 
-    READY,
+    READY,  // 初始状态
 
-    PROFILING,
+    PROFILING, // 代表已经启动
 
     STOPPED
 }

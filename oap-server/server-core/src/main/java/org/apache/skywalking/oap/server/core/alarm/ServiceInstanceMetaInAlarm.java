@@ -33,6 +33,7 @@ public class ServiceInstanceMetaInAlarm extends MetaInAlarm {
     private String[] tags;
     private String[] properties;
 
+    // 同样就是写死了 scope信息
     @Override
     public String getScope() {
         return DefaultScopeDefine.SERVICE_INSTANCE_CATALOG_NAME;

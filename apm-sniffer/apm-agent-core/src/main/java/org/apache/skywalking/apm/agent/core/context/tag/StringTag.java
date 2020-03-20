@@ -23,6 +23,7 @@ import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 /**
  * A subclass of {@link AbstractTag}, represent a tag with a {@link String} value.
  * <p>
+ *     代表一个 string 类型的标签
  */
 public class StringTag extends AbstractTag<String> {
 

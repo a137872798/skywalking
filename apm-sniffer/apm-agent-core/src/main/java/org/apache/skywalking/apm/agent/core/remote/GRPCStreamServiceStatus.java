@@ -21,6 +21,9 @@ package org.apache.skywalking.apm.agent.core.remote;
 import org.apache.skywalking.apm.agent.core.logging.api.ILog;
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager;
 
+/**
+ * 基于流式调用的先不看 就是模仿reactor的api 来调用
+ */
 public class GRPCStreamServiceStatus {
     private static final ILog logger = LogManager.getLogger(GRPCStreamServiceStatus.class);
     private volatile boolean status;
