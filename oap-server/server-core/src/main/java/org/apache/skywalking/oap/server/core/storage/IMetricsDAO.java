@@ -45,7 +45,7 @@ public interface IMetricsDAO extends DAO {
      * @return InsertRequest should follow the database client driver datatype, in order to make sure it could be
      * executed ASAP.
      */
-    InsertRequest prepareBatchInsert(Model model, Metrics metrics) throws IOException;
+    InsertRequest (Model model, Metrics metrics) throws IOException;
 
     /**
      * Transfer the given metrics to an executable update statement.

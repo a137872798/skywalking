@@ -72,6 +72,7 @@ public class MetricsTransWorker extends AbstractWorker<Metrics> {
      * Use the {@link Metrics#toHour()}, {@link Metrics#toDay()} and {@link Metrics#toMonth()} to clone a new metrics
      * instance then process the downsampling. Then forward the data to different works of different precisions for
      * another round aggregation/merging.
+     * 该对象接收的数据 会尽可能的下发到 不同维度的worker对象
      */
     @Override
     public void in(Metrics metrics) {

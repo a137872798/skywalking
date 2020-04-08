@@ -130,7 +130,6 @@ public class RegisterPersistentWorker extends AbstractWorker<RegisterSource> {
                         // 而当生产者过快 通过赋予QueueBuffer 阻塞的能力 同样通过阻塞避免OOM   (当然还有其他拒绝策略)
                         // 背压的话 是由消费者主动申请 onNext 使得上游发射数据
                         // source.id 代表某个具体的数据
-                        // TODO 这里要确认 每次生成的 source id 都是不同的 还是有可能会出现一致的情况  应该这样想 registerSource 代表一个注册源 那么那个注册源  肯定是具备更新的能力的
                         RegisterSource dbSource = registerDAO.get(modelName, source.id());
                         if (Objects.nonNull(dbSource)) {
                             if (dbSource.combine(source)) {

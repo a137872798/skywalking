@@ -63,12 +63,19 @@ public class StreamAnnotationListener implements AnnotationListener {
             if (stream.processor().equals(InventoryStreamProcessor.class)) {
                 // 添加一组映射关系     这里是处理 RegisterSource 类型的数据
                 InventoryStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
+            // 记录相关的处理器  就是只涉及insert
             } else if (stream.processor().equals(RecordStreamProcessor.class)) {
                 RecordStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
+
+            // 下面2个统计项 是通过专门的线程池去触发的 当接收到数据时 先保存在缓存中
+
+            // 测量类的数据里   在一定时间范围内记录最新值  （多个值整合成一个）
             } else if (stream.processor().equals(MetricsStreamProcessor.class)) {
                 MetricsStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
+            // 在一定时间内 记录几个峰值
             } else if (stream.processor().equals(TopNStreamProcessor.class)) {
                 TopNStreamProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
+            // 当将任务交由NoneStreamingProcessor时  以新增的方式直接进行持久化  链路追踪核心的 ProfileTask 就是通过将数据提前插入到这里之后 发送到连接到oap的所有客户端 并收集线程栈的
             } else if (stream.processor().equals(NoneStreamingProcessor.class)) {
                 NoneStreamingProcessor.getInstance().create(moduleDefineHolder, stream, aClass);
             } else {

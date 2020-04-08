@@ -41,6 +41,9 @@ public class ApdexThresholdConfig extends ConfigChangeWatcher implements Configu
 
     private static final int SYSTEM_RESERVED_THRESHOLD = 500;
 
+    /**
+     * 用于存储配置
+     */
     private Map<String, Integer> dictionary = Collections.emptyMap();
 
     private String rawConfig = Const.EMPTY_STRING;

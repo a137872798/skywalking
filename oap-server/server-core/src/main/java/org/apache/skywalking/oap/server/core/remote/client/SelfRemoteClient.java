@@ -63,6 +63,11 @@ public class SelfRemoteClient implements RemoteClient {
         throw new UnexpectedException("Self remote client invoked to close.");
     }
 
+    /**
+     * 使用本地 worker 来执行任务
+     * @param nextWorkerName
+     * @param streamData
+     */
     @Override
     public void push(String nextWorkerName, StreamData streamData) {
         workerInstanceGetter.get(nextWorkerName).getWorker().in(streamData);

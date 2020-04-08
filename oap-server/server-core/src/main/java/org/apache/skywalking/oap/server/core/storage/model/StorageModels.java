@@ -108,6 +108,11 @@ public class StorageModels implements IModelGetter, IModelSetter, IModelOverride
         }
     }
 
+    /**
+     * 指定某个列名 并修改成新列名
+     * @param columnName
+     * @param newName
+     */
     @Override
     public void overrideColumnName(String columnName, String newName) {
         models.forEach(model -> model.getColumns().forEach(column -> {

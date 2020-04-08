@@ -51,8 +51,7 @@ public class AlarmRulesWatcher extends ConfigChangeWatcher {
     private volatile String settingsString;
 
     /**
-     * 通过 alarm-setting.yml 内的信息来初始化该对象
-     * @param defaultRules
+     * @param defaultRules  触发警报的一组规则
      * @param provider
      */
     public AlarmRulesWatcher(Rules defaultRules, ModuleProvider provider) {

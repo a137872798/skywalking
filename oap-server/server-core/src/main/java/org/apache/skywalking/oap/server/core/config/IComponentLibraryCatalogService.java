@@ -20,6 +20,9 @@ package org.apache.skywalking.oap.server.core.config;
 
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * 组件目录服务
+ */
 public interface IComponentLibraryCatalogService extends Service {
     int getComponentId(String componentName);
 

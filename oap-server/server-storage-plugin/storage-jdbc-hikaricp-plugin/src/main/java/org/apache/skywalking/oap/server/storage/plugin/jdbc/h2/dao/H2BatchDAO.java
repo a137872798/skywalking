@@ -36,6 +36,9 @@ import org.apache.skywalking.oap.server.storage.plugin.jdbc.SQLExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 用于执行批任务
+ */
 public class H2BatchDAO implements IBatchDAO {
 
     private static final Logger logger = LoggerFactory.getLogger(H2BatchDAO.class);
@@ -58,6 +61,10 @@ public class H2BatchDAO implements IBatchDAO {
         this.dataCarrier.consume(ConsumerPoolFactory.INSTANCE.get(name), new H2BatchDAO.H2BatchConsumer(this));
     }
 
+    /**
+     * 执行准备好的 req 对象 (该对象已经具备执行会话的所有条件 包含 connection param sql )
+     * @param prepareRequests
+     */
     @Override
     public void synchronous(List<PrepareRequest> prepareRequests) {
         if (CollectionUtils.isEmpty(prepareRequests)) {

@@ -36,7 +36,7 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 /**
- * 服务库存缓存  应该是维护了当前进程中维护了多少服务吧
+ * 缓存一些服务信息
  */
 public class ServiceInventoryCache implements Service {
 

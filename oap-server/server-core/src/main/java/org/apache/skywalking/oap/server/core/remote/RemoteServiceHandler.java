@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
  * This class is Server-side streaming RPC implementation. It's a common service for OAP servers to receive message from
  * each others. The stream data id is used to find the object to deserialize message. The next worker id is used to find
  * the worker to process message.
+ * 处理接收到的数据流
  */
 public class RemoteServiceHandler extends RemoteServiceGrpc.RemoteServiceImplBase implements GRPCHandler {
 
@@ -50,6 +51,8 @@ public class RemoteServiceHandler extends RemoteServiceGrpc.RemoteServiceImplBas
 
     private final ModuleDefineHolder moduleDefineHolder;
     private IWorkerInstanceGetter workerInstanceGetter;
+
+    // 几个统计对象
     private CounterMetrics remoteInCounter;
     private CounterMetrics remoteInErrorCounter;
     private CounterMetrics remoteInTargetNotFoundCounter;
@@ -58,6 +61,7 @@ public class RemoteServiceHandler extends RemoteServiceGrpc.RemoteServiceImplBas
     public RemoteServiceHandler(ModuleDefineHolder moduleDefineHolder) {
         this.moduleDefineHolder = moduleDefineHolder;
 
+        // 遥感模块  创建相关计数器
         remoteInCounter = moduleDefineHolder.find(TelemetryModule.NAME)
                                             .provider()
                                             .getService(MetricsCreator.class)
@@ -94,6 +98,7 @@ public class RemoteServiceHandler extends RemoteServiceGrpc.RemoteServiceImplBas
 
     /**
      * gRPC handler of {@link RemoteServiceGrpc}. Continue the distributed aggregation at the current OAP node.
+     * 接收到数据流
      */
     @Override
     public StreamObserver<RemoteMessage> call(StreamObserver<Empty> responseObserver) {
@@ -113,10 +118,12 @@ public class RemoteServiceHandler extends RemoteServiceGrpc.RemoteServiceImplBas
                 remoteInCounter.inc();
                 HistogramMetrics.Timer timer = remoteInHistogram.createTimer();
                 try {
+                    // 本次数据对应的 worker 类型 以及内部数据实体
                     String nextWorkerName = message.getNextWorkerName();
                     RemoteData remoteData = message.getRemoteData();
 
                     try {
+                        // 找到对应的worker 对象 并将数据反序列化后处理
                         RemoteHandleWorker handleWorker = workerInstanceGetter.get(nextWorkerName);
                         if (handleWorker != null) {
                             AbstractWorker nextWorker = handleWorker.getWorker();

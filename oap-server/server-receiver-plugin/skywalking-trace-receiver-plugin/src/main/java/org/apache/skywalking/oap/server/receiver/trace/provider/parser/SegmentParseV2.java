@@ -69,32 +69,56 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
  *
  * @since 6.0.0 In the 6.x, the V1 and V2 analysis both exist.
  * @since 7.0.0 SegmentParse(V1) has been removed permanently.
+ * segment 解析对象
  */
 @Slf4j
 public class SegmentParseV2 {
     private final ModuleManager moduleManager;
+    /**
+     * 内部维护一组监听器  通过 ListenerFactory创建
+     */
     private final List<SpanListener> spanListeners;
+    /**
+     * 监听器管理对象
+     */
     private final SegmentParserListenerManager listenerManager;
+    /**
+     * 碎片的核心信息 比如 当前属于哪个段 哪个服务 同时在这里停留了多久
+     */
     private final SegmentCoreInfo segmentCoreInfo;
     private final TraceServiceModuleConfig config;
+    /**
+     * 服务实例存储对象
+     */
     private final ServiceInstanceInventoryCache serviceInstanceInventoryCache;
+    /**
+     * 多个对象共用一个worker
+     */
     @Setter
     private SegmentStandardizationWorker standardizationWorker;
     private volatile static CounterMetrics TRACE_BUFFER_FILE_RETRY;
     private volatile static CounterMetrics TRACE_BUFFER_FILE_OUT;
     private volatile static CounterMetrics TRACE_PARSE_ERROR;
 
+    /**
+     * 每当服务器接收到一个新的数据时 就会创建一个对应的对象 用于解析当前链路信息
+     * @param moduleManager  该对象管理当前应用内所有启动的module
+     * @param listenerManager  包含相关的所有监听器
+     * @param config
+     */
     private SegmentParseV2(ModuleManager moduleManager, SegmentParserListenerManager listenerManager,
                            TraceServiceModuleConfig config) {
         this.moduleManager = moduleManager;
         this.listenerManager = listenerManager;
         this.spanListeners = new LinkedList<>();
+        // 创建用于包装段信息的实体  并设置一些默认值
         this.segmentCoreInfo = new SegmentCoreInfo();
         this.segmentCoreInfo.setStartTime(Long.MAX_VALUE);
         this.segmentCoreInfo.setEndTime(Long.MIN_VALUE);
         this.segmentCoreInfo.setVersion(ProtocolVersion.V2);
         this.config = config;
 
+        // 创建统计数据
         if (TRACE_BUFFER_FILE_RETRY == null) {
             MetricsCreator metricsCreator = moduleManager.find(TelemetryModule.NAME)
                                                          .provider()
@@ -114,20 +138,31 @@ public class SegmentParseV2 {
             );
         }
 
+        // 创建服务实例缓存对象
         this.serviceInstanceInventoryCache = moduleManager.find(CoreModule.NAME)
                                                           .provider()
                                                           .getService(ServiceInstanceInventoryCache.class);
     }
 
+    /**
+     * 解析链路信息
+     * @param bufferData
+     * @param source  (生成链路信息的数据源) 一般都是 Agent
+     * @return
+     */
     public boolean parse(BufferData<UpstreamSegment> bufferData, SegmentSource source) {
+        // 通过工厂创建各种监听器 并添加到容器中
         createSpanListeners();
 
         try {
+            // 获取本次链路信息
             UpstreamSegment upstreamSegment = bufferData.getMessageType();
 
+            // 获取全局链路id 列表  一般就是只包含一个 入口id(全局链路入口 )
             List<UniqueId> traceIds = upstreamSegment.getGlobalTraceIdsList();
 
             if (bufferData.getV2Segment() == null) {
+                // 解析数据后填充到buffer中
                 bufferData.setV2Segment(parseBinarySegment(upstreamSegment));
             }
             SegmentObject segmentObject = bufferData.getV2Segment();
@@ -142,6 +177,7 @@ public class SegmentParseV2 {
 
             SegmentDecorator segmentDecorator = new SegmentDecorator(segmentObject);
 
+            // 在处理过程中如果发现了 对应类型的span 触发监听器
             if (!preBuild(traceIds, segmentDecorator)) {
                 if (log.isDebugEnabled()) {
                     log.debug(
@@ -151,6 +187,7 @@ public class SegmentParseV2 {
                 }
 
                 if (source.equals(SegmentSource.Agent)) {
+                    // 失败将数据写入到文件中
                     writeToBufferFile(segmentCoreInfo.getSegmentId(), upstreamSegment);
                 } else {
                     // from SegmentSource.Buffer
@@ -162,6 +199,7 @@ public class SegmentParseV2 {
                     log.debug("This segment id exchange success, id: {}", segmentCoreInfo.getSegmentId());
                 }
 
+                // 处理完毕触发监听器
                 notifyListenerToBuild();
                 return true;
             }
@@ -300,6 +338,9 @@ public class SegmentParseV2 {
         });
     }
 
+    /**
+     * 每个factory 都创建对应的 listener 并设置到容器中
+     */
     private void createSpanListeners() {
         listenerManager.getSpanListenerFactories()
                        .forEach(
@@ -311,7 +352,13 @@ public class SegmentParseV2 {
         @Setter
         private SegmentStandardizationWorker standardizationWorker;
         private final ModuleManager moduleManager;
+        /**
+         * 该对象内部存放了 各种监听器工厂
+         */
         private final SegmentParserListenerManager listenerManager;
+        /**
+         * 链路模块相关配置
+         */
         private final TraceServiceModuleConfig config;
 
         public Producer(ModuleManager moduleManager, SegmentParserListenerManager listenerManager,
@@ -321,9 +368,16 @@ public class SegmentParseV2 {
             this.config = config;
         }
 
+        /**
+         * 当 traceModule 模块启动的时候 会创建链路相关的handler 并注册到GRPC 服务器上 这样当接收到链路信息时 会委托到该对象进行处理
+         * @param segment   接收到从远端发送的数据
+         * @param source  代表链路信息从哪里获取到 一般都是 agent (也就是植入探针的程序)
+         */
         public void send(UpstreamSegment segment, SegmentSource source) {
+            // producer 对象本身就像是维护创建 Parse的基本属性
             SegmentParseV2 segmentParse = new SegmentParseV2(moduleManager, listenerManager, config);
             segmentParse.setStandardizationWorker(standardizationWorker);
+            // 解析数据前用一个 BufferData 包裹
             segmentParse.parse(new BufferData<>(segment), source);
         }
 

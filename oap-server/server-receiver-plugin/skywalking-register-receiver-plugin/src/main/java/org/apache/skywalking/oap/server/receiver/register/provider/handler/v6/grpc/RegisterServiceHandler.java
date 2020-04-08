@@ -66,12 +66,14 @@ import static org.apache.skywalking.oap.server.core.register.ServiceInstanceInve
  * endpoint, network address and address-service mapping. Responses of service, instance and endpoint register include
  * the IDs to represents these entities. Agent could use them in the header and data report to reduce the network
  * bandwidth resource costs.
+ * 该对象负责接收 植入了 skywalking 探针的客户端 上传的注册服务信息
  */
 public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implements GRPCHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(RegisterServiceHandler.class);
     private static final String INSTANCE_CUSTOMIZED_NAME_PREFIX = "NAME:";
 
+    // 下面这些对象是用来注册服务实例信息的
     private final ServiceInventoryCache serviceInventoryCache;
     private final ServiceInstanceInventoryCache serviceInstanceInventoryCache;
     private final IServiceInventoryRegister serviceInventoryRegister;
@@ -100,6 +102,11 @@ public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implem
                                                             .getService(INetworkAddressInventoryRegister.class);
     }
 
+    /**
+     * ServiceAndEndpointRegisterClient 发出的请求对应该方法 用于注册服务信息
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void doServiceRegister(Services request, StreamObserver<ServiceRegisterMapping> responseObserver) {
         ServiceRegisterMapping.Builder builder = ServiceRegisterMapping.newBuilder();
@@ -115,19 +122,27 @@ public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implem
                 serviceType = ServiceType.normal;
             }
 
+            // 注册对象并返回id  如果之前没有注册 那么会生成一个添加服务任务 到 streamProcessor 中
             int serviceId = serviceInventoryRegister.getOrCreate(
                 serviceName, NodeType.fromRegisterServiceType(serviceType), null);
 
+            // 如果数据已经存在于数据库了 那么将本数据返回
             if (serviceId != Const.NONE) {
                 KeyIntValuePair value = KeyIntValuePair.newBuilder().setKey(serviceName).setValue(serviceId).build();
                 builder.addServices(value);
             }
         });
 
+        // 将结果设置到响应流中  数据会借由GRPC 返回对端
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
     }
 
+    /**
+     * 注册服务实例  套路与上面类似
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void doServiceInstanceRegister(ServiceInstances request,
                                           StreamObserver<ServiceInstanceRegisterMapping> responseObserver) {
@@ -199,6 +214,11 @@ public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implem
         responseObserver.onCompleted();
     }
 
+    /**
+     * 注册某个端点信息
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void doEndpointRegister(Endpoints request, StreamObserver<EndpointMapping> responseObserver) {
         EndpointMapping.Builder builder = EndpointMapping.newBuilder();
@@ -207,7 +227,9 @@ public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implem
             int serviceId = endpoint.getServiceId();
             String endpointName = endpoint.getEndpointName();
 
+            // 明确类型
             DetectPoint detectPoint = DetectPoint.fromNetworkProtocolDetectPoint(endpoint.getFrom());
+            // 植入探针的程序 一般都是使用 server
             if (DetectPoint.SERVER.equals(detectPoint)) {
                 int endpointId = inventoryService.getOrCreate(serviceId, endpointName, detectPoint);
 
@@ -227,13 +249,20 @@ public class RegisterServiceHandler extends RegisterGrpc.RegisterImplBase implem
         responseObserver.onCompleted();
     }
 
+    /**
+     * 植入探针程序 会定期将地址信息填充上来
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void doNetworkAddressRegister(NetAddresses request, StreamObserver<NetAddressMapping> responseObserver) {
         NetAddressMapping.Builder builder = NetAddressMapping.newBuilder();
 
+        // 简单的将地址保存到 持久层中
         request.getAddressesList().forEach(networkAddress -> {
             int addressId = networkAddressInventoryRegister.getOrCreate(networkAddress, null);
 
+            // 已经存在于 oap 的会返回id
             if (addressId != Const.NONE) {
                 builder.addAddressIds(KeyIntValuePair.newBuilder().setKey(networkAddress).setValue(addressId));
             }

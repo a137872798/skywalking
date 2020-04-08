@@ -45,13 +45,20 @@ public class RecordPersistentWorker extends AbstractWorker<Record> {
         this.batchDAO = moduleDefineHolder.find(StorageModule.NAME).provider().getService(IBatchDAO.class);
     }
 
+    /**
+     * RecordStreamProcessor 会间接触发该方法
+     * @param record
+     */
     @Override
     public void in(Record record) {
         try {
+            // 这里返回的对象 就是 sql 和 connection  param的包装对象  本次会话还没有执行 但是必备条件已充足
             InsertRequest insertRequest = recordDAO.prepareBatchInsert(model, record);
+            // 实际上 batchDao 内部也是一个 生产者-消费者模型  也就是说skywalking 本身是一个  多生产者单消费模型 尽可能的通过批处理来提高效率
             batchDAO.asynchronous(insertRequest);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
     }
 }
+

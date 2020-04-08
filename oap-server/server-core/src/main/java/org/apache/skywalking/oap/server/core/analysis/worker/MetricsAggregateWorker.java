@@ -41,12 +41,16 @@ import org.slf4j.LoggerFactory;
  * it merges the data just after the receiver analysis. The metrics belonging to the same entity, metrics type and time
  * bucket, the L1 aggregation will merge them into one metrics object to reduce the unnecessary memory and network
  * payload.
+ * 该对象是一个包装对象 应该是为了实现批处理的功能
  */
 public class MetricsAggregateWorker extends AbstractWorker<Metrics> {
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsAggregateWorker.class);
 
     private AbstractWorker<Metrics> nextWorker;
+    /**
+     * 生产者-消费者池
+     */
     private final DataCarrier<Metrics> dataCarrier;
     private final MergeDataCache<Metrics> mergeDataCache;
     private CounterMetrics aggregationCounter;
@@ -83,6 +87,10 @@ public class MetricsAggregateWorker extends AbstractWorker<Metrics> {
         dataCarrier.produce(metrics);
     }
 
+    /**
+     * 处理生产者生成的数据
+     * @param metrics
+     */
     private void onWork(Metrics metrics) {
         aggregationCounter.inc();
         aggregate(metrics);
@@ -92,7 +100,11 @@ public class MetricsAggregateWorker extends AbstractWorker<Metrics> {
         }
     }
 
+    /**
+     * 每批任务执行到最后时 需要触发该方法
+     */
     private void sendToNext() {
+        // 切换容器同时将上个容器标记成写状态
         mergeDataCache.switchPointer();
         while (mergeDataCache.getLast().isWriting()) {
             try {
@@ -109,9 +121,14 @@ public class MetricsAggregateWorker extends AbstractWorker<Metrics> {
 
             nextWorker.in(data);
         });
+        // 当读取完成时 修改标识 同时清除旧数据  这样就确保在读取某个容器时 数据写入新容器 从而避免频繁的读写冲突   相当于并发点仅在一个volatile标识修饰变量
         mergeDataCache.finishReadingLast();
     }
 
+    /**
+     * 将当前统计的数据尽可能聚合  应该是针对内存的写入 速度会比database network 这些要快很多 所以尽可能的采用批处理
+     * @param metrics
+     */
     private void aggregate(Metrics metrics) {
         mergeDataCache.writing();
         if (mergeDataCache.containsKey(metrics)) {

@@ -22,12 +22,19 @@ import java.util.List;
 import org.apache.skywalking.oap.server.core.analysis.Downsampling;
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * 采样服务配置
+ */
 public class DownsamplingConfigService implements Service {
 
     private boolean shouldToHour = false;
     private boolean shouldToDay = false;
     private boolean shouldToMonth = false;
 
+    /**
+     * 通过一组指标来初始化 也就是该对象本身不是用来统计数据的
+     * @param downsampling
+     */
     public DownsamplingConfigService(List<String> downsampling) {
         downsampling.forEach(value -> {
             if (Downsampling.Hour.getName().toLowerCase().equals(value.toLowerCase())) {

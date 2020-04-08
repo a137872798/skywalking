@@ -25,6 +25,9 @@ import org.apache.skywalking.oap.server.configuration.api.ConfigChangeWatcher;
 import org.apache.skywalking.oap.server.core.Const;
 import org.apache.skywalking.oap.server.receiver.trace.module.TraceModule;
 
+/**
+ * 探测db延迟的
+ */
 public class DBLatencyThresholdsAndWatcher extends ConfigChangeWatcher {
     private AtomicReference<Map<String, Integer>> thresholds;
     private AtomicReference<String> settingsString;
@@ -37,6 +40,10 @@ public class DBLatencyThresholdsAndWatcher extends ConfigChangeWatcher {
         activeSetting(config);
     }
 
+    /**
+     * 设置初始配置
+     * @param config
+     */
     private void activeSetting(String config) {
         Map<String, Integer> newThresholds = new HashMap<>();
         String[] settings = config.split(",");
@@ -46,6 +53,7 @@ public class DBLatencyThresholdsAndWatcher extends ConfigChangeWatcher {
                 newThresholds.put(typeValue[0].trim().toLowerCase(), Integer.parseInt(typeValue[1].trim()));
             }
         }
+        // 追加一个默认值
         if (!newThresholds.containsKey("default")) {
             newThresholds.put("default", 10000);
         }

@@ -33,10 +33,16 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 该对象用于接收 前端client 的链路信息
+ */
 public class TraceSegmentReportServiceHandler extends TraceSegmentReportServiceGrpc.TraceSegmentReportServiceImplBase implements GRPCHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(TraceSegmentReportServiceHandler.class);
 
+    /**
+     * 链路解析器
+     */
     private final SegmentParseV2.Producer segmentProducer;
     private HistogramMetrics histogram;
 
@@ -48,6 +54,11 @@ public class TraceSegmentReportServiceHandler extends TraceSegmentReportServiceG
         histogram = metricsCreator.createHistogramMetric("trace_grpc_v6_in_latency", "The process latency of service mesh telemetry", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);
     }
 
+    /**
+     * 当植入探针的程序调用存根方法时 会转发到该方法
+     * @param responseObserver
+     * @return
+     */
     @Override
     public StreamObserver<UpstreamSegment> collect(StreamObserver<Commands> responseObserver) {
         return new StreamObserver<UpstreamSegment>() {
@@ -59,6 +70,7 @@ public class TraceSegmentReportServiceHandler extends TraceSegmentReportServiceG
 
                 HistogramMetrics.Timer timer = histogram.createTimer();
                 try {
+                    // 当接收到数据时 发送到 segmentProducer 去处理
                     segmentProducer.send(segment, SegmentSource.Agent);
                 } finally {
                     timer.finish();

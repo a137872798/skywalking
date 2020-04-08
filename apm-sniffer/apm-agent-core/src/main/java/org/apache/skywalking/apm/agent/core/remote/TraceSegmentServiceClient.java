@@ -43,6 +43,9 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Buffer.BUFFER_SIZ
 import static org.apache.skywalking.apm.agent.core.conf.Config.Buffer.CHANNEL_SIZE;
 import static org.apache.skywalking.apm.agent.core.remote.GRPCChannelStatus.CONNECTED;
 
+/**
+ * 该服务在SPI文件中的第一位 会最先被启动
+ */
 @DefaultImplementor
 public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSegment>, TracingContextListener, GRPCChannelListener {
     private static final ILog logger = LogManager.getLogger(TraceSegmentServiceClient.class);
@@ -54,6 +57,9 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
     private volatile TraceSegmentReportServiceGrpc.TraceSegmentReportServiceStub serviceStub;
     private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
 
+    /**
+     * 将自身作为监听器注册到 GRPCChannelManager 上  用于监听连接的创建 并且获取到连接时创建存根对象 便于调用
+     */
     @Override
     public void prepare() {
         ServiceManager.INSTANCE.findService(GRPCChannelManager.class).addChannelListener(this);
@@ -64,11 +70,16 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
         lastLogTime = System.currentTimeMillis();
         segmentUplinkedCounter = 0;
         segmentAbandonedCounter = 0;
+        // 该对象是一个 数据池 生产者往内部填充数据 同时 消费者拉取数据并处理
         carrier = new DataCarrier<>(CHANNEL_SIZE, BUFFER_SIZE);
         carrier.setBufferStrategy(BufferStrategy.IF_POSSIBLE);
+        // 1代表只有一个存储数据的容器
         carrier.consume(this, 1);
     }
 
+    /**
+     * 将当前对象设置到 监听链路上下文的 listener 中
+     */
     @Override
     public void onComplete() {
         TracingContext.ListenerManager.add(this);
@@ -85,12 +96,18 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
 
     }
 
+    /**
+     * 当某个链路执行完后 会通过监听器让该对象感知到 之后由消费者线程触发该方法
+     * @param data  因为尽可能采用批处理 所有这里是一个 list
+     */
     @Override
     public void consume(List<TraceSegment> data) {
         if (CONNECTED.equals(status)) {
+            // 标记本次 GRPC 处理是否完成的状态
             final GRPCStreamServiceStatus status = new GRPCStreamServiceStatus(false);
             StreamObserver<UpstreamSegment> upstreamSegmentStreamObserver = serviceStub.withDeadlineAfter(
                 Config.Collector.GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS
+                    //
             ).collect(new StreamObserver<Commands>() {
                 @Override
                 public void onNext(Commands commands) {
@@ -131,6 +148,7 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
             upstreamSegmentStreamObserver.onCompleted();
 
             status.wait4Finish();
+            // 代表有多少数据成功传输到 oap
             segmentUplinkedCounter += data.size();
         } else {
             segmentAbandonedCounter += data.size();
@@ -165,11 +183,17 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
 
     }
 
+    /**
+     * 当监听到某个链路调用完成时
+     * @param traceSegment
+     */
     @Override
     public void afterFinished(TraceSegment traceSegment) {
+        // 代表该 segment 存在问题 所以需要忽略
         if (traceSegment.isIgnore()) {
             return;
         }
+        // 将数据填充到 数据池中
         if (!carrier.produce(traceSegment)) {
             if (logger.isDebugEnable()) {
                 logger.debug("One trace segment has been abandoned, cause by buffer is full.");
@@ -177,8 +201,13 @@ public class TraceSegmentServiceClient implements BootService, IConsumer<TraceSe
         }
     }
 
+    /**
+     * 当感知到 channelStatus 发生变化时 触发该方法
+     * @param status
+     */
     @Override
     public void statusChanged(GRPCChannelStatus status) {
+        // 当创建连接时  通过该连接对象创建存根对象 便于向 oap发送链路数据
         if (CONNECTED.equals(status)) {
             Channel channel = ServiceManager.INSTANCE.findService(GRPCChannelManager.class).getChannel();
             serviceStub = TraceSegmentReportServiceGrpc.newStub(channel);

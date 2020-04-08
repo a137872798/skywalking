@@ -32,6 +32,7 @@ import org.apache.skywalking.apm.util.StringFormatGroup;
  * <p>
  * Right now, the rule is REGEX based, it definitely has much space to optimize, because basically, only `*` is required
  * to be supported.
+ * 该对象在 7.* 版本已经被废弃了吧
  */
 @DefaultImplementor
 public class OperationNameFormatService implements BootService {

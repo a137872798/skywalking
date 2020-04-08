@@ -49,6 +49,10 @@ public class ProfileTaskExecutionContext {
     // total started profiling tracing context count 总计已经启动了多少任务
     private final AtomicInteger totalStartedProfilingCount = new AtomicInteger(0);
 
+    /**
+     * 一个统计任务 同时对应了5个 slot
+     * @param task
+     */
     public ProfileTaskExecutionContext(ProfileTask task) {
         this.task = task;
         profilingSegmentSlots = new AtomicReferenceArray<>(Config.Profile.MAX_PARALLEL);
@@ -75,18 +79,22 @@ public class ProfileTaskExecutionContext {
     /**
      * check have available slot to profile and add it
      *
+     * @param tracingContext 链路上下文对象 内部包含了各个信息 比如 traceSegment
+     * @param traceSegmentId 代表该链路所属段的id
+     * @param firstSpanOPName 代表生成该链路的首个操作名称
      * @return is add profile success
      * 提交一个 关于某个链路信息的 profile 任务
      */
     public boolean attemptProfiling(TracingContext tracingContext, ID traceSegmentId, String firstSpanOPName) {
         // check has available slot
         final int usingSlotCount = currentProfilingCount.get();
-        // 超过了最大并行度 拒绝添加新的 profile任务
+        // 超过了最大并行度 拒绝添加新的 profile任务  也就是每个profileTask 最多允许同时监控5个链路调用  可以在配置文件中设置 在初始化时 会通过反射对该属性进行覆盖
         if (usingSlotCount >= Config.Profile.MAX_PARALLEL) {
             return false;
         }
 
-        // check first operation name matches  这里要先匹配 spanOPName  spanOPName 代表针对某个操作
+        // check first operation name matches
+        // 如果本次生成的链路信息 与尝试监控的profileTask 不一致 那么跳过
         if (!Objects.equals(task.getFistSpanOPName(), firstSpanOPName)) {
             return false;
         }
@@ -101,6 +109,7 @@ public class ProfileTaskExecutionContext {
             return false;
         }
 
+        // 这条线程是链路线程
         final ThreadProfiler threadProfiler = new ThreadProfiler(tracingContext, traceSegmentId, Thread.currentThread(), this);
         int slotLength = profilingSegmentSlots.length();
         // 使用这种方式 也就是无锁实现
@@ -128,7 +137,8 @@ public class ProfileTaskExecutionContext {
 
     /**
      * find tracing context and clear on slot
-     * 关闭某个任务   这里一个链路上下文对应一个 profileSlot  那么看来该对象可以同时监控多个链路了
+     * 每个 tracingContext 代表 本次 profileTask 记录的操作信息的某个信息源   profilingSegmentSlots 就代表一次最多允许多少个信息源
+     * 这里代表某个信息源 已经完成任务了 那么就不需要继续检测了 就需要从数组中移除
      */
     public void stopTracingProfile(TracingContext tracingContext) {
         // find current tracingContext and clear it

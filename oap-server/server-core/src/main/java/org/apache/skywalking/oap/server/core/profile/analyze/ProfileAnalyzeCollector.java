@@ -30,6 +30,7 @@ import org.apache.skywalking.oap.server.core.query.entity.ProfileStackTree;
 
 /**
  * Work for {@link ProfileAnalyzer} to analyze.
+ * 协助  analyzer 处理数据
  */
 public class ProfileAnalyzeCollector implements Collector<ProfileStack, ProfileStackNode, ProfileStackTree> {
     @Override

@@ -56,13 +56,21 @@ public class ExitSpan extends StackBasedTracingSpan implements WithPeerInfo {
         super(spanId, parentSpanId, operationId, peer, owner);
     }
 
+    /**
+     * 创建一个新的 exitSpan
+     * @param spanId  当前span
+     * @param parentSpanId   父span
+     * @param operationName   本次发起的操作
+     * @param peerId   对端信息
+     * @param owner   由哪个上下文创建
+     */
     public ExitSpan(int spanId, int parentSpanId, String operationName, int peerId, TracingContext owner) {
         super(spanId, parentSpanId, operationName, peerId, owner);
     }
 
     /**
      * Set the {@link #startTime}, when the first start, which means the first service provided.
-     * 当前栈深度为1 时才会设置启动时间
+     * 当前栈深度为0时触发start 才会设置启动时间
      */
     @Override
     public ExitSpan start() {

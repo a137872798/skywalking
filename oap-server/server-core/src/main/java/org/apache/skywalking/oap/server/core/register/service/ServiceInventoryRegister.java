@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.isNull;
 
+/**
+ * 服务注册对象
+ */
 public class ServiceInventoryRegister implements IServiceInventoryRegister {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceInventoryRegister.class);
@@ -53,10 +56,19 @@ public class ServiceInventoryRegister implements IServiceInventoryRegister {
         return serviceInventoryCache;
     }
 
+    /**
+     * 往该对象注册服务信息时 通过StreamProcess处理数据 (持久化处理)
+     * @param serviceName
+     * @param nodeType
+     * @param properties
+     * @return
+     */
     @Override
     public int getOrCreate(String serviceName, NodeType nodeType, JsonObject properties) {
+        // 先访问一级缓存 没有的话 从数据库中查询 还是没有就是还没有插入到数据库
         int serviceId = getServiceInventoryCache().getServiceId(serviceName);
 
+        // 代表数据库中还不存在数据 需要添加数据
         if (serviceId == Const.NONE) {
             ServiceInventory serviceInventory = new ServiceInventory();
             serviceInventory.setName(serviceName);
@@ -71,6 +83,7 @@ public class ServiceInventoryRegister implements IServiceInventoryRegister {
             serviceInventory.setLastUpdateTime(now);
             serviceInventory.setProperties(properties);
 
+            // 内部将数据存储到工作队列中  同时会有单独的消费者线程池消费内部数据 (这里就会完成注册任务)
             InventoryStreamProcessor.getInstance().in(serviceInventory);
         }
         return serviceId;
@@ -118,6 +131,11 @@ public class ServiceInventoryRegister implements IServiceInventoryRegister {
         }
     }
 
+    /**
+     * 某个服务收到了最新的心跳
+     * @param serviceId
+     * @param heartBeatTime
+     */
     @Override
     public void heartbeat(int serviceId, long heartBeatTime) {
         ServiceInventory serviceInventory = getServiceInventoryCache().get(serviceId);

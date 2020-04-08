@@ -47,6 +47,12 @@ public class ProfileMutation implements GraphQLMutationResolver {
         return profileTaskService;
     }
 
+    /**
+     * 基于 Jetty 接收请求 请求中携带了某个 服务的id 或者 endpointName 之后 每个前端client 通过查询dao层的数据获取要执行的链路收集任务
+     * @param creationRequest
+     * @return
+     * @throws IOException
+     */
     public ProfileTaskCreationResult createProfileTask(ProfileTaskCreationRequest creationRequest) throws IOException {
         return getProfileTaskService().createTask(creationRequest.getServiceId(), creationRequest.getEndpointName() == null ? null : creationRequest
             .getEndpointName()

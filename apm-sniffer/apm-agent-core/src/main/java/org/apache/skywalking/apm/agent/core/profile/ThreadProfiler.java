@@ -35,7 +35,7 @@ public class ThreadProfiler {
     private final TracingContext tracingContext;
     // current tracing segment id  当前链路段id
     private final ID traceSegmentId;
-    // need to profiling thread
+    // need to profiling thread  代表链路对应的那条线程
     private final Thread profilingThread;
     // profiling execution context
     private final ProfileTaskExecutionContext executionContext;
@@ -50,7 +50,7 @@ public class ThreadProfiler {
     private int dumpSequence = 0;
 
     /**
-     * 简单的赋值
+     * 工作代码 和 收集profile信息的代码 运行在不同的线程  当每个工作代码需要统计 profile信息时 生成一个 ThreadProfile对象并添加到 ProfileTaskExecutionContext 中  此时 profilingThread 绑定到工作线程
      * @param tracingContext
      * @param traceSegmentId
      * @param profilingThread
@@ -101,7 +101,7 @@ public class ThreadProfiler {
         // dump thread
         StackTraceElement[] stackTrace;
         try {
-            // 获取本线程堆栈信息
+            // 获取链路线程的栈轨迹信息
             stackTrace = profilingThread.getStackTrace();
 
             // stack depth is zero, means thread is already run finished  此时没有堆栈信息直接返回null
@@ -146,7 +146,7 @@ public class ThreadProfiler {
      * matches profiling tracing context
      */
     public boolean matches(TracingContext context) {
-        // match trace id
+        // match trace id  匹配全局链路中 segment 的全局id
         return Objects.equal(context.getReadableGlobalTraceId(), tracingContext.getReadableGlobalTraceId());
     }
 

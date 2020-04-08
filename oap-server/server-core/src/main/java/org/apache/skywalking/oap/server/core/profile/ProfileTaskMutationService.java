@@ -34,6 +34,9 @@ import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.module.Service;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
 
+/**
+ * profileTask 突变服务 ??? 该服务能够在oap中存储 profileTask任务 而连接到 oap的client 会定期查询是否有 profileTask  有的话就采集线程栈数据 并发送到oap上
+ */
 public class ProfileTaskMutationService implements Service {
 
     private final ModuleManager moduleManager;
@@ -63,6 +66,7 @@ public class ProfileTaskMutationService implements Service {
      * @param dumpPeriod           dump period
      * @param maxSamplingCount     max trace count on sniffer
      * @return task create result
+     * 创建一个描述任务 每隔多少时间统计某个 model的数据
      */
     public ProfileTaskCreationResult createTask(final int serviceId,
                                                 final String endpointName,
@@ -76,7 +80,7 @@ public class ProfileTaskMutationService implements Service {
         long taskStartTime = monitorStartTime > 0 ? monitorStartTime : System.currentTimeMillis();
         long taskEndTime = taskStartTime + TimeUnit.MINUTES.toMillis(monitorDuration);
 
-        // check data
+        // check data  校验参数是否合法
         final String errorMessage = checkDataSuccess(
             serviceId, endpointName, taskStartTime, taskEndTime, monitorDuration, minDurationThreshold, dumpPeriod,
             maxSamplingCount
@@ -85,7 +89,7 @@ public class ProfileTaskMutationService implements Service {
             return ProfileTaskCreationResult.builder().errorReason(errorMessage).build();
         }
 
-        // create task
+        // create task  将信息包装成 ProfileTask对象
         final long createTime = System.currentTimeMillis();
         final ProfileTaskRecord task = new ProfileTaskRecord();
         task.setServiceId(serviceId);
@@ -97,6 +101,7 @@ public class ProfileTaskMutationService implements Service {
         task.setCreateTime(createTime);
         task.setMaxSamplingCount(maxSamplingCount);
         task.setTimeBucket(TimeBucket.getRecordTimeBucket(taskEndTime));
+        // 存储 profileTask
         NoneStreamingProcessor.getInstance().in(task);
 
         return ProfileTaskCreationResult.builder().id(task.id()).build();

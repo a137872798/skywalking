@@ -56,7 +56,7 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
  * task list every {@link Config.Collector#GET_PROFILE_TASK_INTERVAL} second. 2. When there is a new profile task
  * snapshot, the data is transferred to the back end. use {@link LinkedBlockingQueue} 3. When profiling task finish, it
  * will send task finish status to backend
- * TODO 这个类先不看 感觉是与其他组件通信的桥梁
+ * 该对象负责将 ProfileTask 数据发送到 oap 上
  */
 @DefaultImplementor
 public class ProfileTaskChannelService implements BootService, Runnable, GRPCChannelListener {
@@ -77,8 +77,12 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
     // query task list schedule
     private volatile ScheduledFuture<?> getTaskListFuture;
 
+    /**
+     * 当确认开启了 profile服务时  该方法由定时器执行
+     */
     @Override
     public void run() {
+        // 确保此时服务信息已经注册到了oap上
         if (RemoteDownstreamConfig.Agent.SERVICE_ID != DictionaryUtil.nullValue()
             && RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID != DictionaryUtil.nullValue()) {
             // 此时通道是可用的
@@ -86,7 +90,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
                 try {
                     ProfileTaskCommandQuery.Builder builder = ProfileTaskCommandQuery.newBuilder();
 
-                    // sniffer info
+                    // sniffer info  标注本次描述信息从哪个服务实例传来
                     builder.setServiceId(RemoteDownstreamConfig.Agent.SERVICE_ID)
                            .setInstanceId(RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID);
 
@@ -94,9 +98,11 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
                     builder.setLastCommandTime(ServiceManager.INSTANCE.findService(ProfileTaskExecutionService.class)
                                                                       .getLastCommandCreateTime());
 
+                    // 调用 getProfileTaskCommands 实际会调用到 oap 下某个GRPCHandler 对应的方法
                     Commands commands = profileTaskBlockingStub.withDeadlineAfter(GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS)
                                                                .getProfileTaskCommands(builder.build());
 
+                    // 转发给对应 command 处理器
                     ServiceManager.INSTANCE.findService(CommandService.class).receiveCommand(commands);
                 } catch (Throwable t) {
                     if (!(t instanceof StatusRuntimeException)) {
@@ -126,8 +132,12 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
         ServiceManager.INSTANCE.findService(GRPCChannelManager.class).addChannelListener(this);
     }
 
+    /**
+     * 通过 GRPC 将信息发布到 oap 上
+     */
     @Override
     public void boot() {
+        // 描述信息是否被激活
         if (Config.Profile.ACTIVE) {
             // query task list
             getTaskListFuture = Executors.newSingleThreadScheduledExecutor(
@@ -139,6 +149,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
                 ), 0, Config.Collector.GET_PROFILE_TASK_INTERVAL, TimeUnit.SECONDS
             );
 
+            // profile 信息收集起来后会存放在该对象 并通过 GRPC 发送到 oap上
             sendSnapshotFuture = Executors.newSingleThreadScheduledExecutor(
                 new DefaultNamedThreadFactory("ProfileSendSnapshotService")
             ).scheduleWithFixedDelay(
@@ -165,6 +176,10 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
         }
     }
 
+    /**
+     * 当监听到连接完成时 创建存根对象用于与 oap 通信
+     * @param status
+     */
     @Override
     public void statusChanged(GRPCChannelStatus status) {
         if (GRPCChannelStatus.CONNECTED.equals(status)) {
@@ -188,7 +203,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
 
     /**
      * notify backend profile task has finish
-     * 当某个任务完成时触发
+     * 当某个任务完成时触发  需要通知到 oap
      */
     public void notifyProfileTaskFinish(ProfileTask task) {
         try {
@@ -209,6 +224,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
 
     /**
      * send segment snapshot
+     * 每隔一定时间 将阻塞队列内的数据发送到 oap
      */
     private class SnapshotSender implements Runnable {
 
@@ -249,6 +265,7 @@ public class ProfileTaskChannelService implements BootService, Runnable, GRPCCha
                                 }
                             }
                         );
+                        // 将元素 通过 stream 形式传播到下游
                         for (TracingThreadSnapshot snapshot : buffer) {
                             final ThreadSnapshot transformSnapshot = snapshot.transform();
                             snapshotStreamObserver.onNext(transformSnapshot);

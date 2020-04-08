@@ -58,6 +58,7 @@ public class RegisterRemoteWorker extends AbstractWorker<RegisterSource> {
     @Override
     public final void in(RegisterSource registerSource) {
         try {
+            //  返回的集群节点 地址列表顺序是不确定的 那么为什么选用 ForeverFirst 策略???
             remoteSender.send(remoteReceiverWorkerName, registerSource, Selector.ForeverFirst);
         } catch (Throwable e) {
             logger.error(e.getMessage(), e);

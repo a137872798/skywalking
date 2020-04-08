@@ -31,6 +31,7 @@ import org.apache.skywalking.oap.server.receiver.sharing.server.SharingServerMod
 
 /**
  * profile task receiver default provider
+ * 该模块负责创建 描述信息任务  依赖于 GRPC 服务
  */
 public class ProfileModuleProvider extends ModuleProvider {
     @Override

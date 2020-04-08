@@ -28,6 +28,9 @@ public class Model {
     private final String name;
     private final boolean capableOfTimeSeries;
     private final Downsampling downsampling;
+    /**
+     * 该模块是否支持过期删除
+     */
     private final boolean deleteHistory;
     /**
      * 该模块涉及到的所有列

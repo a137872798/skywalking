@@ -42,10 +42,11 @@ import org.slf4j.LoggerFactory;
 /**
  * This is a wrapper of the gRPC client for sending message to each other OAP server. It contains a block queue to
  * buffering the message and sending the message by batch.
+ * 连接到远端服务器
  */
 public class GRPCRemoteClient implements RemoteClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(GRPCRemoteClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(GRGRPCClientPCRemoteClient.class);
 
     private final int channelSize;
     private final int bufferSize;
@@ -81,6 +82,7 @@ public class GRPCRemoteClient implements RemoteClient {
     public void connect() {
         if (!isConnect) {
             this.getClient().connect();
+            // 连接完成时 才有必要设置消费逻辑
             this.getDataCarrier().consume(new RemoteMessageConsumer(), 1);
             this.isConnect = true;
         }
@@ -126,6 +128,7 @@ public class GRPCRemoteClient implements RemoteClient {
      *
      * @param nextWorkerName the name of a worker which will process this stream data.
      * @param streamData     the entity contains the values.
+     *                       某个节点接收到数据时  它会将数据发送到其他节点 (就是通过该对象)
      */
     @Override
     public void push(String nextWorkerName, StreamData streamData) {
@@ -141,14 +144,20 @@ public class GRPCRemoteClient implements RemoteClient {
         public void init() {
         }
 
+        /**
+         * 发送失败 仅打印日志
+         * @param remoteMessages
+         */
         @Override
         public void consume(List<RemoteMessage> remoteMessages) {
             try {
                 StreamObserver<RemoteMessage> streamObserver = createStreamObserver();
                 for (RemoteMessage remoteMessage : remoteMessages) {
                     remoteOutCounter.inc();
+                    // 添加待发送的消息
                     streamObserver.onNext(remoteMessage);
                 }
+                // 触发 gRPC的发送逻辑
                 streamObserver.onCompleted();
             } catch (Throwable t) {
                 remoteOutErrorCounter.inc();
@@ -171,11 +180,15 @@ public class GRPCRemoteClient implements RemoteClient {
      * single consume. The max number of concurrency allowed at the same time is 10.
      *
      * @return stream observer
+     * 生成一个可订阅对象  用户可以通过订阅该对象 实现监听功能
      */
     private StreamObserver<RemoteMessage> createStreamObserver() {
         int sleepTotalMillis = 0;
         int sleepMillis = 10;
+        // 这是gRPC 本身的使用方式 当触发 onCompleted 时 就代表数据成功发送到了对端
+        // 10 代表最大的并行度  因为该消费逻辑 可能会对应多个生产者  这里是尽可能的减少网络压力
         while (concurrentStreamObserverNumber.incrementAndGet() > 10) {
+            // 一旦超过10 必须等待之前的发送完成 在 onError 或者 onComplete 后该值也会减小
             concurrentStreamObserverNumber.addAndGet(-1);
 
             try {
@@ -191,11 +204,13 @@ public class GRPCRemoteClient implements RemoteClient {
             }
         }
 
-        return getStub().withDeadlineAfter(remoteTimeout, TimeUnit.SECONDS).call(new StreamObserver<Empty>() {
+        return getStub().withDeadlineAfter(remoteTimeout, TimeUnit.SECONDS)  // 这里应该是已经返回一个 observable 了
+                .call(new StreamObserver<Empty>() {  // 这里是追加一个订阅者
             @Override
             public void onNext(Empty empty) {
             }
 
+            // 异常 或者 completed 都代表成功处理完该请求
             @Override
             public void onError(Throwable throwable) {
                 concurrentStreamObserverNumber.addAndGet(-1);

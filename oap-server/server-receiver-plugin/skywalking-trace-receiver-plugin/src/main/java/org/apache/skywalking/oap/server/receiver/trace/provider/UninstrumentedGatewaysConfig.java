@@ -42,9 +42,15 @@ import java.util.stream.StreamSupport;
 
 import static java.util.Objects.isNull;
 
+/**
+ * 不需要检测 的网关配置
+ */
 @Slf4j
 public class UninstrumentedGatewaysConfig extends ConfigChangeWatcher {
     private final AtomicReference<String> settingsString;
+    /**
+     * key 网关host+port  value 网关实例信息   使用volatile 确保读取到最新数据
+     */
     private volatile Map<String, GatewayInstanceInfo> gatewayInstanceKeyedByAddress = Collections.emptyMap();
 
     UninstrumentedGatewaysConfig(TraceModuleProvider provider) {
@@ -77,6 +83,10 @@ public class UninstrumentedGatewaysConfig extends ConfigChangeWatcher {
         return settingsString.get();
     }
 
+    /**
+     * 更新网关信息
+     * @param gateways
+     */
     private void onGatewaysUpdated(final GatewayInfos gateways) {
         log.info("Updating uninstrumented gateways with: {}", gateways);
         if (isNull(gateways)) {
@@ -97,6 +107,15 @@ public class UninstrumentedGatewaysConfig extends ConfigChangeWatcher {
         return isConfiguredAsGateway;
     }
 
+    /**
+     * #gateways:
+     * #  - name: proxy0
+     * #    instances:
+     * #      - host: 127.0.0.1 # the host/ip of this gateway instance
+     * #        port: 9099 # the port of this gateway instance, defaults to 80
+     * @param file
+     * @return
+     */
     private GatewayInfos parseGatewaysFromFile(final String file) {
         try {
             final Reader reader = ResourceUtils.read(file);

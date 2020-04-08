@@ -55,10 +55,17 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
         this.commandService = moduleManager.find(CoreModule.NAME).provider().getService(CommandService.class);
     }
 
+    /**
+     * 植入探针的程序 会定期判断是否生成了最新的 profile 任务
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void getProfileTaskCommands(ProfileTaskCommandQuery request, StreamObserver<Commands> responseObserver) {
         // query profile task list by service id
+        // 获取当前待执行的 profileTask   TODO 数据是什么时候添加到 dao 的
         final List<ProfileTask> profileTaskList = profileTaskCache.getProfileTaskList(request.getServiceId());
+        // 没有任务 返回一个空的command
         if (CollectionUtils.isEmpty(profileTaskList)) {
             responseObserver.onNext(Commands.newBuilder().build());
             responseObserver.onCompleted();
@@ -69,16 +76,17 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
         final Commands.Builder commandsBuilder = Commands.newBuilder();
         final long lastCommandTime = request.getLastCommandTime();
 
+        // 这里过滤掉 过早的任务
         for (ProfileTask profileTask : profileTaskList) {
             // if command create time less than last command time, means sniffer already have task
             if (profileTask.getCreateTime() <= lastCommandTime) {
                 continue;
             }
 
-            // record profile task log
+            // record profile task log   存储 logRecord
             recordProfileTaskLog(profileTask, request.getInstanceId(), ProfileTaskLogOperationType.NOTIFIED);
 
-            // add command
+            // add command   添加一个待执行任务
             commandsBuilder.addCommands(commandService.newProfileTaskCommand(profileTask).serialize().build());
         }
 
@@ -86,6 +94,11 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
         responseObserver.onCompleted();
     }
 
+    /**
+     * 当 植入了 探针的程序接收到 oap下发的profile任务时  定期收集当前线程栈信息 并上发到 oap
+     * @param responseObserver
+     * @return
+     */
     @Override
     public StreamObserver<ThreadSnapshot> collectSnapshot(StreamObserver<Commands> responseObserver) {
         return new StreamObserver<ThreadSnapshot>() {
@@ -95,7 +108,7 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
                     LOGGER.debug("receive profile segment snapshot");
                 }
 
-                // parse segment id
+                // parse segment id   当前快照对应链路id
                 UniqueId uniqueId = snapshot.getTraceSegmentId();
                 StringBuilder segmentIdBuilder = new StringBuilder();
                 for (int i = 0; i < uniqueId.getIdPartsList().size(); i++) {
@@ -133,12 +146,17 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
         };
     }
 
+    /**
+     * oap 定期下发 profileTask 到植入探针的程序 之后程序会追踪当前数据 并在执行完成时 将信息重新返回给 oap
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void reportTaskFinish(ProfileTaskFinishReport request, StreamObserver<Commands> responseObserver) {
         // query task from cache, set log time bucket need it
         final ProfileTask profileTask = profileTaskCache.getProfileTaskById(request.getTaskId());
 
-        // record finish log
+        // record finish log  追加一条操作完成的记录
         if (profileTask != null) {
             recordProfileTaskLog(profileTask, request.getInstanceId(), ProfileTaskLogOperationType.EXECUTION_FINISHED);
         }
@@ -147,6 +165,12 @@ public class ProfileTaskServiceHandler extends ProfileTaskGrpc.ProfileTaskImplBa
         responseObserver.onCompleted();
     }
 
+    /**
+     * 生成 log 对象并保存
+     * @param task
+     * @param instanceId
+     * @param operationType
+     */
     private void recordProfileTaskLog(ProfileTask task, int instanceId, ProfileTaskLogOperationType operationType) {
         final ProfileTaskLogRecord logRecord = new ProfileTaskLogRecord();
         logRecord.setTaskId(task.getId());

@@ -31,7 +31,7 @@ import org.apache.skywalking.apm.util.StringUtil;
  * {@link ContextCarrier} is a data carrier of {@link TracingContext}. It holds the snapshot (current state) of {@link
  * TracingContext}.
  * <p>
- *     该对象存储了当前上下文的状态
+ *    存储某次链路调用的全部信息
  */
 public class ContextCarrier implements Serializable {
 
@@ -77,12 +77,18 @@ public class ContextCarrier implements Serializable {
 
     /**
      * {@link DistributedTraceId}, also known as TraceId
-     * 主要的链路id???
+     * 标记一个链路启动的id
      */
     private DistributedTraceId primaryDistributedTraceId;
 
+    /**
+     * 将内部信息格式化输出
+     * @return
+     */
     public CarrierItem items() {
+        // 该对象相当于一个请求头 value 就是格式化后的carrier
         SW6CarrierItem sw6CarrierItem = new SW6CarrierItem(this, null);
+        // CarrierItemHead 本身是一个空对象 但是它包含一个连接到 sw6CarrierItem 的引用
         return new CarrierItemHead(sw6CarrierItem);
     }
 

@@ -38,6 +38,8 @@ public class NetworkAddressInventoryCache implements Service {
 
     private static final Logger logger = LoggerFactory.getLogger(NetworkAddressInventoryCache.class);
 
+    // 这里使用了2级缓存 先使用基于内存的缓存 并且该缓存自备过期功能 所以需要使用二级缓存  2级缓存还是一些持久化框架 比如 db 或者 es  那么还有使用缓存的必要吗  因为访问db是比较慢的
+
     private final Cache<String, Integer> networkAddressCache;
     private final Cache<Integer, NetworkAddressInventory> addressIdCache;
 

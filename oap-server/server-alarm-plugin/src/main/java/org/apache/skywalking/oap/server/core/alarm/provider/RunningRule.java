@@ -43,6 +43,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 /**
  * RunningRule represents each rule in running status. Based on the {@link AlarmRule} definition,
+ * 包含运行时信息 以及规则信息
  */
 @Slf4j
 public class RunningRule {
@@ -91,6 +92,7 @@ public class RunningRule {
      *
      * @param meta    of input metrics
      * @param metrics includes the values.
+     *                定期扫描统计数据 并触发警报模块 看看是否满足规则   这里只是存储 消费逻辑在一个定时任务
      */
     public void in(MetaInAlarm meta, Metrics metrics) {
         if (!meta.getMetricsName().equals(metricsName)) {
@@ -351,6 +353,9 @@ public class RunningRule {
             return matchCount >= countThreshold;
         }
 
+        /**
+         * 类似一个时间轮算法 每个槽对应一个数值
+         */
         private void init() {
             values = new LinkedList<>();
             for (int i = 0; i < period; i++) {

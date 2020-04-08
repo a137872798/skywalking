@@ -50,9 +50,10 @@ public class ContextManagerExtendService implements BootService {
     }
 
     /**
-     *
+     * 创建一个链路上下文对象  一次完整的调用链路 通过一个 ContextCarrier 来维护 而每跨越一个进程时 创建一个 TracerContext
+     * 比如 dubbo
      * @param operationName  标记本次操作名称
-     * @param forceSampling  是否要生成样本
+     * @param forceSampling  是否强制要求采样
      * @return
      */
     public AbstractTracerContext createTraceContext(String operationName, boolean forceSampling) {
@@ -65,6 +66,7 @@ public class ContextManagerExtendService implements BootService {
             // 委托给 样品服务生成上下文
             SamplingService samplingService = ServiceManager.INSTANCE.findService(SamplingService.class);
             // 如果强制要求样本 那么必然生成 链路上下文 如果没有强制要求 那么尝试生成 如果失败的话 返回一个空的上下文
+            // 这应该是为了避免过多创建使得系统负载过重
             if (forceSampling || samplingService.trySampling()) {
                 context = new TracingContext(operationName);
             } else {

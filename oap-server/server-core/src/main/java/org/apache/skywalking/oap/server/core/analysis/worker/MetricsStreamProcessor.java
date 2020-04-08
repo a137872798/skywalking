@@ -105,6 +105,7 @@ public class MetricsStreamProcessor implements StreamProcessor<Metrics> {
         }
 
         IModelSetter modelSetter = moduleDefineHolder.find(CoreModule.NAME).provider().getService(IModelSetter.class);
+        // 采样服务配置
         DownsamplingConfigService configService = moduleDefineHolder.find(CoreModule.NAME)
                                                                     .provider()
                                                                     .getService(DownsamplingConfigService.class);
@@ -116,6 +117,7 @@ public class MetricsStreamProcessor implements StreamProcessor<Metrics> {
         if (configService.shouldToHour()) {
             Model model = modelSetter.putIfAbsent(
                 metricsClass, stream.scopeId(), new Storage(stream.name(), true, true, Downsampling.Hour), false);
+            // 根据 model 生成worker对象
             hourPersistentWorker = worker(moduleDefineHolder, metricsDAO, model);
         }
         if (configService.shouldToDay()) {
@@ -129,9 +131,11 @@ public class MetricsStreamProcessor implements StreamProcessor<Metrics> {
             monthPersistentWorker = worker(moduleDefineHolder, metricsDAO, model);
         }
 
+        // 这里作为3个维度worker的入口
         MetricsTransWorker transWorker = new MetricsTransWorker(
             moduleDefineHolder, stream.name(), hourPersistentWorker, dayPersistentWorker, monthPersistentWorker);
 
+        // 这里又创建一个 minute为维度的worker 对象
         Model model = modelSetter.putIfAbsent(
             metricsClass, stream.scopeId(), new Storage(stream.name(), true, true, Downsampling.Minute), false);
         MetricsPersistentWorker minutePersistentWorker = minutePersistentWorker(
@@ -143,18 +147,30 @@ public class MetricsStreamProcessor implements StreamProcessor<Metrics> {
                                                                        .getService(IWorkerInstanceSetter.class);
         workerInstanceSetter.put(remoteReceiverWorkerName, minutePersistentWorker, metricsClass);
 
+        // 内部包含一组client 会选择一个节点发送数据 包含本机   如果是本机的话会触发MetricsPersistentWorker 的逻辑
         MetricsRemoteWorker remoteWorker = new MetricsRemoteWorker(moduleDefineHolder, remoteReceiverWorkerName);
+        // 该对象内部实现读写分离 和 批处理  之后将数据转发到 remoteWorker
         MetricsAggregateWorker aggregateWorker = new MetricsAggregateWorker(
             moduleDefineHolder, remoteWorker, stream.name());
 
         entryWorkers.put(metricsClass, aggregateWorker);
     }
 
+    /**
+     * 创建分钟为维度的worker
+     * @param moduleDefineHolder
+     * @param metricsDAO
+     * @param model
+     * @param transWorker
+     * @return
+     */
     private MetricsPersistentWorker minutePersistentWorker(ModuleDefineHolder moduleDefineHolder,
                                                            IMetricsDAO metricsDAO,
                                                            Model model,
                                                            MetricsTransWorker transWorker) {
+        // 该对象用于接收数据并触发警报模块
         AlarmNotifyWorker alarmNotifyWorker = new AlarmNotifyWorker(moduleDefineHolder);
+        // 该对象触发报告模块  也就是在配置文件中指定一个地址作为服务器 这里会将数据发送到那边
         ExportWorker exportWorker = new ExportWorker(moduleDefineHolder);
 
         MetricsPersistentWorker minutePersistentWorker = new MetricsPersistentWorker(
@@ -164,6 +180,13 @@ public class MetricsStreamProcessor implements StreamProcessor<Metrics> {
         return minutePersistentWorker;
     }
 
+    /**
+     *
+     * @param moduleDefineHolder  该对象的职责是便于获取需要的各个模块
+     * @param metricsDAO  储存测量数据相关的持久层
+     * @param model  具体存储的数据模型信息
+     * @return
+     */
     private MetricsPersistentWorker worker(ModuleDefineHolder moduleDefineHolder, IMetricsDAO metricsDAO, Model model) {
         MetricsPersistentWorker persistentWorker = new MetricsPersistentWorker(
             moduleDefineHolder, model, metricsDAO, null, null, null, enableDatabaseSession);

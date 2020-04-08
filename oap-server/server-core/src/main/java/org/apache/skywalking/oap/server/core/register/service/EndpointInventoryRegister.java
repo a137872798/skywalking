@@ -49,8 +49,16 @@ public class EndpointInventoryRegister implements IEndpointInventoryRegister {
         return cacheService;
     }
 
+    /**
+     * 往register 注册时 先考虑是否存在于缓存中
+     * @param serviceId
+     * @param endpointName
+     * @param detectPoint
+     * @return
+     */
     @Override
     public int getOrCreate(int serviceId, String endpointName, DetectPoint detectPoint) {
+        // get的同时会自动添加到缓存
         int endpointId = getCacheService().getEndpointId(serviceId, endpointName, detectPoint.ordinal());
 
         if (endpointId == Const.NONE) {

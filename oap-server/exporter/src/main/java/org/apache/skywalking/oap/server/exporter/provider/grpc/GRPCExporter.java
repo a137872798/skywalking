@@ -90,6 +90,7 @@ public class GRPCExporter extends MetricFormatter implements MetricValuesExportS
      */
     @Override
     public void export(ExportEvent event) {
+        // 这里只处理全量事件
         if (ExportEvent.EventType.TOTAL == event.getType()) {
             Metrics metrics = event.getMetrics();
             if (metrics instanceof WithMetadata) {

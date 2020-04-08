@@ -47,11 +47,16 @@ public class DubboInstrumentation extends ClassInstanceMethodsEnhancePluginDefin
     public InstanceMethodsInterceptPoint[] getInstanceMethodsInterceptPoints() {
         return new InstanceMethodsInterceptPoint[] {
             new InstanceMethodsInterceptPoint() {
+                // 基于 invoke 方法名做匹配
                 @Override
                 public ElementMatcher<MethodDescription> getMethodsMatcher() {
                     return named("invoke");
                 }
 
+                /**
+                 * 使用哪个类进行增强
+                 * @return
+                 */
                 @Override
                 public String getMethodsInterceptor() {
                     return INTERCEPT_CLASS;

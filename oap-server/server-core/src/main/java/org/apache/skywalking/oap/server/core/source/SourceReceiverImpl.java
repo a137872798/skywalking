@@ -24,6 +24,7 @@ import org.apache.skywalking.oap.server.core.analysis.DispatcherManager;
 
 /**
  * 该对象用于接收数据 并进行转发
+ * 最终就是存储到持久层  利用 RecordStreamProcessor
  */
 public class SourceReceiverImpl implements SourceReceiver {
 

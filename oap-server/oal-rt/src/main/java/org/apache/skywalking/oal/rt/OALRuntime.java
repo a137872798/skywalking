@@ -108,14 +108,24 @@ public class OALRuntime implements OALEngine {
     private ClassLoader currentClassLoader;
     private Configuration configuration;
     private AllDispatcherContext allDispatcherContext;
+    /**
+     * 该对象监听@Stream注解 并将class抽成 model
+     */
     private StreamAnnotationListener streamAnnotationListener;
+    /**
+     * 当接收到资源时通过该对象进行转发
+     */
     private DispatcherDetectorListener dispatcherDetectorListener;
     private final List<Class> metricsClasses;
     private final List<Class> dispatcherClasses;
+    /**
+     * 是否开启debug
+     */
     private final boolean openEngineDebug;
 
     public OALRuntime() {
         classPool = ClassPool.getDefault();
+        // 写模板用的好像  先不细看  这里要关注的是数据在集群中如何处理 而不是展示
         configuration = new Configuration(new Version("2.3.28"));
         configuration.setEncoding(Locale.ENGLISH, CLASS_FILE_CHARSET);
         configuration.setClassLoaderForTemplateLoading(OALRuntime.class.getClassLoader(), "/code-templates");
@@ -135,19 +145,28 @@ public class OALRuntime implements OALEngine {
         dispatcherDetectorListener = listener;
     }
 
+    /**
+     * 开启 oal
+     * @param currentClassLoader
+     * @throws ModuleStartException
+     * @throws OALCompileException
+     */
     @Override
     public void start(ClassLoader currentClassLoader) throws ModuleStartException, OALCompileException {
+        // 当开启debug 时创建文件夹
         prepareRTTempFolder();
 
         this.currentClassLoader = currentClassLoader;
         Reader read;
 
         try {
+            // 扫描所有统计项  统计项会携带 @MetricsFunction
             MetricsHolder.init();
         } catch (IOException e) {
             throw new ModuleStartException("load metrics functions error.", e);
         }
 
+        // 应该就是啥模板
         try {
             read = ResourceUtils.read("official_analysis.oal");
         } catch (FileNotFoundException e) {
@@ -167,6 +186,7 @@ public class OALRuntime implements OALEngine {
 
     @Override
     public void notifyAllListeners() throws ModuleStartException {
+        // 可能根据脚本 自动生成了一些便于被统计的类 然后通过这个监听器去处理  (可以看作一个简单的model类)
         metricsClasses.forEach(streamAnnotationListener::notify);
         for (Class dispatcherClass : dispatcherClasses) {
             try {
@@ -177,11 +197,17 @@ public class OALRuntime implements OALEngine {
         }
     }
 
+    /**
+     * 脚本对象内 应该有一堆待填充的变量 然后这些变量就是跟统计项匹配
+     * @param oalScripts
+     * @throws OALCompileException
+     */
     private void generateClassAtRuntime(OALScripts oalScripts) throws OALCompileException {
         List<AnalysisResult> metricsStmts = oalScripts.getMetricsStmts();
         metricsStmts.forEach(this::buildDispatcherContext);
 
         for (AnalysisResult metricsStmt : metricsStmts) {
+            // 动态代理后设置了一堆类
             metricsClasses.add(generateMetricsClass(metricsStmt));
             generateMetricsBuilderClass(metricsStmt);
         }

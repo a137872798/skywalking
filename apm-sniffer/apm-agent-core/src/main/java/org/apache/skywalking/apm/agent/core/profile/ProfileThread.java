@@ -48,6 +48,7 @@ public class ProfileThread implements Runnable {
     public void run() {
 
         try {
+            // 根据 本次执行的 profile上下文执行任务
             profiling(taskExecutionContext);
         } catch (InterruptedException e) {
             // ignore interrupted
@@ -68,17 +69,20 @@ public class ProfileThread implements Runnable {
      */
     private void profiling(ProfileTaskExecutionContext executionContext) throws InterruptedException {
 
-        // 首先获取任务的转储信息
+        // 代表每隔多少时间 获取一次 线程快照信息
         int maxSleepPeriod = executionContext.getTask().getThreadDumpPeriod();
 
         // run loop when current thread still running
         long currentLoopStartTime = -1;
+        // 确保当前线程没有被打断
         while (!Thread.currentThread().isInterrupted()) {
             // 每次循环都会更新时间戳
             currentLoopStartTime = System.currentTimeMillis();
 
             // each all slot  返回所有的任务对象   因为 volatile修饰词 所以总是能读取到最新数据
+            // 当任务被创建时 默认会创建长度为5 的数组
             AtomicReferenceArray<ThreadProfiler> profilers = executionContext.threadProfilerSlots();
+            // 槽一开始是空的 并且 任务会在一定延时后执行 那么就是有别的线程填充任务
             int profilerCount = profilers.length();
             for (int slot = 0; slot < profilerCount; slot++) {
                 ThreadProfiler currentProfiler = profilers.get(slot);
@@ -95,12 +99,14 @@ public class ProfileThread implements Runnable {
                         break;
 
                     case PROFILING:
-                        // dump stack  创建该线程关联的快照对象
+                        // dump stack  创建该线程关联的快照对象（包含线程栈 和一些其他信息）
                         TracingThreadSnapshot snapshot = currentProfiler.buildSnapshot();
                         if (snapshot != null) {
+                            // 将快照信息存储到某个阻塞队列中
                             profileTaskChannelService.addProfilingSnapshot(snapshot);
                         } else {
-                            // tell execution context current tracing thread dump failed, stop it  不满足条件时 关闭任务
+                            // 某个profile 不满足条件时 会关闭本次context 对应的所有 ThreadProfiler
+                            // tell execution context current tracing thread dump failed, stop it
                             executionContext.stopTracingProfile(currentProfiler.tracingContext());
                         }
                         break;

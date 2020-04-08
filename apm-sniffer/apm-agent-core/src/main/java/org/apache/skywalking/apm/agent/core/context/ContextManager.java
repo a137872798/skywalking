@@ -38,7 +38,7 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Agent.OPERATION_N
  * https://github.com/opentracing/specification/blob/master/specification.md#references-between-spans
  *
  * <p> Also, {@link ContextManager} delegates to all {@link AbstractTracerContext}'s major methods.
- * 用于管理链路的对象
+ * 用于管理链路的对象  默认情况下第二个启动
  */
 public class ContextManager implements BootService {
     private static final ILog logger = LogManager.getLogger(ContextManager.class);
@@ -70,9 +70,10 @@ public class ContextManager implements BootService {
                 if (logger.isDebugEnable()) {
                     logger.debug("No operation name, ignore this trace.");
                 }
+                // 该对象还是存在 depth  信息的
                 context = new IgnoredTracerContext();
             } else {
-                // 当设置了操作名时 首先要求 服务id 和 实例id 不为空
+                // 当设置了操作名时 首先要求 服务id 和 实例id 不为空 也就是本节点已经注册在 skywalking 上了
                 if (RemoteDownstreamConfig.Agent.SERVICE_ID != DictionaryUtil.nullValue()
                     && RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID != DictionaryUtil.nullValue()) {
                     if (EXTEND_SERVICE == null) {
@@ -95,7 +96,7 @@ public class ContextManager implements BootService {
     }
 
     /**
-     * 获取当前线程绑定的上下文
+     * 获取当前线程绑定的上下文  当接收到 dubbo生成的结果时 会填充该值
      * @return
      */
     private static AbstractTracerContext get() {
@@ -116,9 +117,9 @@ public class ContextManager implements BootService {
     }
 
     /**
-     * 创建一个异步的 span
-     * @param operationName
-     * @param carrier  需要传入一个 context的快照对象
+     * 比如 作为dubbo 的提供者端 接收到一个请求就会触发该方法
+     * @param operationName  描述本次操作信息 比如调用了什么方法 路径是什么
+     * @param carrier  该对象负责存储数据
      * @return
      */
     public static AbstractSpan createEntrySpan(String operationName, ContextCarrier carrier) {
@@ -126,6 +127,7 @@ public class ContextManager implements BootService {
         AbstractTracerContext context;
         // 如果 操作名过长 则进行裁剪
         operationName = StringUtil.cut(operationName, OPERATION_NAME_THRESHOLD);
+        // 这里代表 carrier 携带了数据   dubbo提供者一端会收到 消费者设置进去的数据 然后用来填充 carrier
         if (carrier != null && carrier.isValid()) {
             SamplingService samplingService = ServiceManager.INSTANCE.findService(SamplingService.class);
             // 增加样品数量 同时samplingService 每过3秒就会重置样品数量
@@ -134,10 +136,12 @@ public class ContextManager implements BootService {
             context = getOrCreate(operationName, true);
             // 当创建完上下文后 (也可能是从当前线程拿到的)  然后用上下文对象去创建一个 entrySpan
             span = context.createEntrySpan(operationName);
+            // 将本次span 和 segment关联到 carrier携带的segment上
             context.extract(carrier);
         } else {
-            // 如果 carrier 为空 那么就不需要校验 或者校验失败时 就尝试创建一个上下文 失败时创建一个空的上下文
+            // 如果 carrier 为空 或者 内部数据无效 那么创建一个新的context    skywalking 和 seats 不一样 没有传递本地线程变量  这里会创建一个全新的上下文
             context = getOrCreate(operationName, false);
+            // 创建 entrySpan
             span = context.createEntrySpan(operationName);
         }
         return span;
@@ -155,19 +159,24 @@ public class ContextManager implements BootService {
     }
 
     /**
-     * 创建 exitSpan
-     * @param operationName
-     * @param carrier
-     * @param remotePeer
+     * 创建 exitSpan  对应dubbo 就是当本节点作为一个消费者 往外发送请求时 会创建一个 exitSpan对象
+     * @param operationName  本次操作名称 一般就是描述本次消费者调用的是哪个provider 地址
+     * @param carrier 该对象用于存放数据
+     * @param remotePeer  provider 地址
      * @return
      */
     public static AbstractSpan createExitSpan(String operationName, ContextCarrier carrier, String remotePeer) {
         if (carrier == null) {
             throw new IllegalArgumentException("ContextCarrier can't be null.");
         }
+        // 如果信息过长 截取至500
         operationName = StringUtil.cut(operationName, OPERATION_NAME_THRESHOLD);
+        // 这里生成链路上下文对象  context相当于是桥梁 再一次完整链路中 每个牵扯到的节点都会作为一个 segment 内部的 entrySpan exitSpan 分别对应 发出一个请求和接收到一个结果
+        // 什么是一条完整的链路 指的就是从 第一个跨进程调用开始到结束  比如 某个Dubbo 方法 只要发起调用并收到结果 也就是一次完整链路了 至于内部又涉及到多少服务就是要记录的点
+        // 而当进入下一个dubbo方法时 实际上已经跟之前的链路无关了
         AbstractTracerContext context = getOrCreate(operationName, false);
-        // 套路都差不多 就是调用的 context的api不同
+        // context 相当于一个协调者 开放了 创建span的 api 入口
+        // 内部的逻辑就是创建一个span对象 添加到活跃队列 并且启动span   如何这是发起的第二环 那么会复用之前的TracerContext (dubbo 会传递本地线程变量)
         AbstractSpan span = context.createExitSpan(operationName, remotePeer);
         // 这里将context信息注入到carrier中
         context.inject(carrier);
@@ -234,7 +243,9 @@ public class ContextManager implements BootService {
      * only could get by low-performance way, this stop way is still acceptable.
      */
     public static void stopSpan() {
+        // 获取当前线程绑定的context
         final AbstractTracerContext context = get();
+        // 按照栈的顺序停止span
         stopSpan(context.activeSpan(), context);
     }
 
@@ -249,6 +260,7 @@ public class ContextManager implements BootService {
      */
     private static void stopSpan(AbstractSpan span, final AbstractTracerContext context) {
         if (context.stopSpan(span)) {
+            // 如果所有span 都被关闭 从 threadLocal 上移除该Context  比如 从A 节点发起一个服务调用 一旦返回结果 本次调用链已经结束  而一个业务方法如果内部包含多个 dubbo调用 会被看作时多个链路
             CONTEXT.remove();
             RUNTIME_CONTEXT.remove();
         }

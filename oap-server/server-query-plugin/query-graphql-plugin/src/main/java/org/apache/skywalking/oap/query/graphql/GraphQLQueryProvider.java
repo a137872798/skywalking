@@ -44,6 +44,7 @@ import org.apache.skywalking.oap.server.library.module.ServiceNotProvidedExcepti
 
 /**
  * GraphQL query provider.
+ * 大致的意思是客户端发起请求时 创建一个 profileTask 之后 前端client会感知到任务 进而收集线程栈信息
  */
 public class GraphQLQueryProvider extends ModuleProvider {
 

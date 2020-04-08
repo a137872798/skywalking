@@ -57,7 +57,7 @@ public class ContextSnapshot {
     /**
      * @param traceSegmentId 推测该id 父级段id
      * @param spanId  父span
-     * @param distributedTraceIds 本次整个链路中涉及到的所有id
+     * @param distributedTraceIds 本次整个链路中涉及到的所有id    第一个segment就是开启整个链路的起点
      */
     ContextSnapshot(ID traceSegmentId, int spanId, List<DistributedTraceId> distributedTraceIds) {
         this.traceSegmentId = traceSegmentId;

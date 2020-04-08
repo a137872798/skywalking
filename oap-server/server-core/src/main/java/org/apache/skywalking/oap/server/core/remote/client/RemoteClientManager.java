@@ -227,7 +227,7 @@ public class RemoteClientManager implements Service {
                     if (address.isSelf()) {
                         RemoteClient client = new SelfRemoteClient(moduleDefineHolder, address);
                         newRemoteClients.add(client);
-                    // 生成连接到对端的client
+                    // 生成连接到对端的client   当该对象接收到消息时 会自动发送到远端
                     } else {
                         RemoteClient client = new GRPCRemoteClient(moduleDefineHolder, address, 1, 3000, remoteTimeout);
                         client.connect();

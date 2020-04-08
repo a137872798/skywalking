@@ -32,7 +32,7 @@ import org.apache.skywalking.apm.network.trace.component.command.ServiceResetCom
 
 /**
  * Command executor that executes the {@link ServiceResetCommand} command
- * 执行重置服务的命令
+ * 当 发送心跳时 发现oap上本节点信息不存在 那么需要将本节点信息重新注册到 oap 上
  */
 public class ServiceResetCommandExecutor implements CommandExecutor {
     private static final ILog LOGGER = LogManager.getLogger(ServiceResetCommandExecutor.class);
@@ -41,12 +41,15 @@ public class ServiceResetCommandExecutor implements CommandExecutor {
     public void execute(final BaseCommand command) throws CommandExecutionException {
         LOGGER.warn("Received ServiceResetCommand, a re-register task is scheduled.");
 
+        // 当本节点在oap的信息丢失时 先暂停发送心跳
         ServiceManager.INSTANCE.findService(ServiceAndEndpointRegisterClient.class).coolDown();
 
+        // 重置了之前的配置信息  之后在 ServiceAndEndpointRegisterClient 的定时任务中 会发起下一次注册任务
         RemoteDownstreamConfig.Agent.SERVICE_ID = DictionaryUtil.nullValue();
         RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID = DictionaryUtil.nullValue();
         RemoteDownstreamConfig.Agent.INSTANCE_REGISTERED_TIME = DictionaryUtil.nullValue();
 
+        // 这里清空2个 数据目录
         NetworkAddressDictionary.INSTANCE.clear();
         EndpointNameDictionary.INSTANCE.clear();
     }

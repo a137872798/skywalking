@@ -52,6 +52,7 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Collector.GRPC_UP
 /**
  * The <code>JVMService</code> represents a timer, which collectors JVM cpu, memory, memorypool and gc info, and send
  * the collected info to Collector through the channel provided by {@link GRPCChannelManager}
+ * 该对象用于监控 jvm运行状态 并监听 GRPCChannelManage 一旦连接创建 就生成存根对象 用于将jvm信息发送到oap 之后后台通过特定的module来加工数据
  */
 @DefaultImplementor
 public class JVMService implements BootService, Runnable {
@@ -59,6 +60,9 @@ public class JVMService implements BootService, Runnable {
     private LinkedBlockingQueue<JVMMetric> queue;
     private volatile ScheduledFuture<?> collectMetricFuture;
     private volatile ScheduledFuture<?> sendMetricFuture;
+    /**
+     * 发送数据的逻辑被封装到该对象中
+     */
     private Sender sender;
 
     @Override
@@ -70,6 +74,7 @@ public class JVMService implements BootService, Runnable {
 
     @Override
     public void boot() throws Throwable {
+        // 定期统计当前jvm 数据
         collectMetricFuture = Executors.newSingleThreadScheduledExecutor(new DefaultNamedThreadFactory("JVMService-produce"))
                                        .scheduleAtFixedRate(new RunnableWithExceptionProtection(this, new RunnableWithExceptionProtection.CallbackWhenException() {
                                            @Override
@@ -77,6 +82,7 @@ public class JVMService implements BootService, Runnable {
                                                logger.error("JVMService produces metrics failure.", t);
                                            }
                                        }), 0, 1, TimeUnit.SECONDS);
+        // 上面的任务负责监控当前服务实例状态 并填充到队列中 而该任务负责将数据从队列 中取出来 并发送到oap
         sendMetricFuture = Executors.newSingleThreadScheduledExecutor(new DefaultNamedThreadFactory("JVMService-consume"))
                                     .scheduleAtFixedRate(new RunnableWithExceptionProtection(sender, new RunnableWithExceptionProtection.CallbackWhenException() {
                                         @Override
@@ -97,12 +103,17 @@ public class JVMService implements BootService, Runnable {
         sendMetricFuture.cancel(true);
     }
 
+    /**
+     * 监控当前jvm信息
+     */
     @Override
     public void run() {
+        // 需要确保当前 服务信息实例以注册 否则即使统计了 后台(oap) 不能定位到服务节点也没用
         if (RemoteDownstreamConfig.Agent.SERVICE_ID != DictionaryUtil.nullValue() && RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID != DictionaryUtil
             .nullValue()) {
             long currentTimeMillis = System.currentTimeMillis();
             try {
+                // 基本是基于 MXBean 获取系统级别信息 并包装成对象后填充到队列中
                 JVMMetric.Builder jvmBuilder = JVMMetric.newBuilder();
                 jvmBuilder.setTime(currentTimeMillis);
                 jvmBuilder.setCpu(CPUProvider.INSTANCE.getCpuMetric());
@@ -121,24 +132,35 @@ public class JVMService implements BootService, Runnable {
         }
     }
 
+    /**
+     * 报告jvm 信息
+     */
     private class Sender implements Runnable, GRPCChannelListener {
         private volatile GRPCChannelStatus status = GRPCChannelStatus.DISCONNECT;
         private volatile JVMMetricReportServiceGrpc.JVMMetricReportServiceBlockingStub stub = null;
 
+        /**
+         * 定时任务执行的逻辑
+         */
         @Override
         public void run() {
+            // 确保服务实例信息已创建
             if (RemoteDownstreamConfig.Agent.SERVICE_ID != DictionaryUtil.nullValue() && RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID != DictionaryUtil
                 .nullValue()) {
                 if (status == GRPCChannelStatus.CONNECTED) {
                     try {
+                        // 尽可能的批发送 所以发送的数据体是一个列表
                         JVMMetricCollection.Builder builder = JVMMetricCollection.newBuilder();
                         LinkedList<JVMMetric> buffer = new LinkedList<JVMMetric>();
                         queue.drainTo(buffer);
                         if (buffer.size() > 0) {
                             builder.addAllMetrics(buffer);
+                            // 设置本节点服务id
                             builder.setServiceInstanceId(RemoteDownstreamConfig.Agent.SERVICE_INSTANCE_ID);
                             Commands commands = stub.withDeadlineAfter(GRPC_UPSTREAM_TIMEOUT, TimeUnit.SECONDS)
                                                     .collect(builder.build());
+
+                            // 处理oap返回的command
                             ServiceManager.INSTANCE.findService(CommandService.class).receiveCommand(commands);
                         }
                     } catch (Throwable t) {
@@ -148,6 +170,10 @@ public class JVMService implements BootService, Runnable {
             }
         }
 
+        /**
+         * 监听到连接完成时创建存根对象
+         * @param status
+         */
         @Override
         public void statusChanged(GRPCChannelStatus status) {
             if (GRPCChannelStatus.CONNECTED.equals(status)) {

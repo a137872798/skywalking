@@ -39,6 +39,9 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 当oap 启动完成时 在后置钩子中会触发该定时任务
+ */
 public enum CacheUpdateTimer {
     INSTANCE;
 
@@ -60,6 +63,10 @@ public enum CacheUpdateTimer {
         }
     }
 
+    /**
+     * 定期更新以下数据  以下数据没有做 缓存 db双写一致 而是选择缓存过期策略 在一定的时间点拉取相对较新的数据 替换掉缓存中的数据
+     * @param moduleDefineHolder
+     */
     private void update(ModuleDefineHolder moduleDefineHolder) {
         updateServiceInventory(moduleDefineHolder);
         updateServiceInstanceInventory(moduleDefineHolder);
@@ -74,11 +81,13 @@ public enum CacheUpdateTimer {
         ServiceInventoryCache serviceInventoryCache = moduleDefineHolder.find(CoreModule.NAME)
                                                                         .provider()
                                                                         .getService(ServiceInventoryCache.class);
+        // 获取最新一分钟内的数据
         List<ServiceInventory> serviceInventories = serviceInventoryCacheDAO.loadLastUpdate(System.currentTimeMillis() - 60000);
 
         serviceInventories.forEach(serviceInventory -> {
             ServiceInventory cache = serviceInventoryCache.get(serviceInventory.getSequence());
             if (Objects.nonNull(cache)) {
+                // 如果数据已经发生了变化 那么更新缓存
                 if (cache.getMappingServiceId() != serviceInventory.getMappingServiceId()) {
                     cache.setMappingServiceId(serviceInventory.getMappingServiceId());
                     cache.setServiceNodeType(serviceInventory.getServiceNodeType());
@@ -139,6 +148,7 @@ public enum CacheUpdateTimer {
 
     /**
      * update all profile task list for each service
+     * 每次触发定时任务时 从dao层获取 profileTask 并更新到缓存中  什么时候添加进去的
      */
     private void updateProfileTask(ModuleDefineHolder moduleDefineHolder) {
         IProfileTaskQueryDAO profileTaskQueryDAO = moduleDefineHolder.find(StorageModule.NAME)

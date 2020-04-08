@@ -36,8 +36,17 @@ public class ComponentLibraryCatalogService implements IComponentLibraryCatalogS
     private static final Logger logger = LoggerFactory.getLogger(ComponentLibraryCatalogService.class);
     private static final String COMPONENT_SERVER_MAPPING_SECTION = "Component-Server-Mappings";
 
+    /**
+     * 组件名和 id 的映射关系
+     */
     private Map<String, Integer> componentName2Id;
+    /**
+     * 组件id 与名称
+     */
     private Map<Integer, String> componentId2Name;
+    /**
+     * 组件id 与服务id（服务相当于更高层的组件 比如 Kafka 和 Kafka-consumer Kafka-producer 的关系）
+     */
     private Map<Integer, Integer> componentId2ServerId;
 
     public ComponentLibraryCatalogService() throws InitialComponentCatalogException {
@@ -77,10 +86,28 @@ public class ComponentLibraryCatalogService implements IComponentLibraryCatalogS
 
         Map<String, String> nameMapping = new HashMap<>();
         try {
+            /**
+             * Tomcat:
+             *   id: 1
+             *   languages: Java
+             * HttpClient:
+             *   id: 2
+             *   languages: Java,C#,Node.js
+             * Dubbo:
+             *   id: 3
+             *   languages: Java
+             * H2:
+             *   id: 4
+             *   languages: Java
+             * Mysql:
+             *   id: 5
+             *   languages: Java,C#,Node.js
+             */
             Reader applicationReader = ResourceUtils.read("component-libraries.yml");
             Yaml yaml = new Yaml();
             Map map = yaml.loadAs(applicationReader, Map.class);
 
+            // 双层map嵌套
             map.forEach((componentName, settingCollection) -> {
                 Map settings = (Map) settingCollection;
                 if (COMPONENT_SERVER_MAPPING_SECTION.equals(componentName)) {
@@ -94,6 +121,13 @@ public class ComponentLibraryCatalogService implements IComponentLibraryCatalogS
                 }
             });
 
+            // 这个是 名称的映射关系
+            /**
+             * Component-Server-Mappings:
+             *   mongodb-driver: MongoDB
+             *   rocketMQ-producer: RocketMQ
+             *   rocketMQ-consumer: RocketMQ
+             */
             nameMapping.forEach((name, serverName) -> {
                 if (!componentName2Id.containsKey(name)) {
                     throw new InitialComponentCatalogException("Component name [" + name + "] in Component-Server-Mappings doesn't exist in component define. ");

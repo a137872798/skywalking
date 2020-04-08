@@ -60,7 +60,12 @@ import static java.util.Objects.nonNull;
  */
 public class MultiScopesSpanListener implements EntrySpanListener, ExitSpanListener, GlobalTraceIdsListener {
 
+    /**
+     * 该对象负责接收数据 并进行转发  通过委托给不同的 StreamProcessor 来处理数据
+     */
     private final SourceReceiver sourceReceiver;
+
+    // 分别用于存储实例信息
     private final ServiceInstanceInventoryCache instanceInventoryCache;
     private final ServiceInventoryCache serviceInventoryCache;
     private final EndpointInventoryCache endpointInventoryCache;
@@ -75,10 +80,12 @@ public class MultiScopesSpanListener implements EntrySpanListener, ExitSpanListe
     private String traceId;
 
     private MultiScopesSpanListener(ModuleManager moduleManager, TraceServiceModuleConfig config) {
+        // 获取数据处理入口 该对象内部有一个转发器 通过转发器处理数据
         this.sourceReceiver = moduleManager.find(CoreModule.NAME).provider().getService(SourceReceiver.class);
         this.entrySourceBuilders = new LinkedList<>();
         this.exitSourceBuilders = new LinkedList<>();
         this.slowDatabaseAccesses = new ArrayList<>(10);
+        // 找到对应的数据存储对象
         this.instanceInventoryCache = moduleManager.find(CoreModule.NAME)
                                                    .provider()
                                                    .getService(ServiceInstanceInventoryCache.class);
@@ -271,6 +278,9 @@ public class MultiScopesSpanListener implements EntrySpanListener, ExitSpanListe
         }
     }
 
+    /**
+     * 当数据分析结束时调用的方法
+     */
     @Override
     public void build() {
         entrySourceBuilders.forEach(entrySourceBuilder -> {

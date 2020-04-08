@@ -57,12 +57,17 @@ public class NotifyHandler implements MetricsNotify {
         core = new AlarmCore(alarmRulesWatcher);
     }
 
+    /**
+     * 通过一个定时任务 会定期将保存在缓存中的统计数据发送到这里
+     * @param metrics
+     */
     @Override
     public void notify(Metrics metrics) {
         WithMetadata withMetadata = (WithMetadata) metrics;
         MetricsMetaInfo meta = withMetadata.getMeta();
         int scope = meta.getScope();
 
+        // 如果数据本身没有携带注解 忽略
         if (!DefaultScopeDefine.inServiceCatalog(scope) && !DefaultScopeDefine.inServiceInstanceCatalog(scope) && !DefaultScopeDefine
             .inEndpointCatalog(scope)) {
             return;
@@ -103,6 +108,7 @@ public class NotifyHandler implements MetricsNotify {
             return;
         }
 
+        // 找到数据时先判断有没有设置该数据项对应的 警报策略
         List<RunningRule> runningRules = core.findRunningRule(meta.getMetricsName());
         if (runningRules == null) {
             return;

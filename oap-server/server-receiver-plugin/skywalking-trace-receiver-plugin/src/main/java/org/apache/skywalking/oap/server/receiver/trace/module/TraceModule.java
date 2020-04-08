@@ -21,6 +21,9 @@ package org.apache.skywalking.oap.server.receiver.trace.module;
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 import org.apache.skywalking.oap.server.receiver.trace.provider.parser.ISegmentParserService;
 
+/**
+ * 链路模块 处理前端client 采集到的链路信息
+ */
 public class TraceModule extends ModuleDefine {
     public static final String NAME = "receiver-trace";
 

@@ -27,6 +27,9 @@ import org.apache.skywalking.apm.network.common.KeyStringValuePair;
 public abstract class BaseCommand {
 
     private final String command;
+    /**
+     * 相当于 requestId
+     */
     private final String serialNumber;
     /**
      * 用于构建 protobuf 格式的数据

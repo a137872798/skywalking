@@ -72,6 +72,12 @@ public class NetworkAddressInventoryRegister implements INetworkAddressInventory
         return this.serviceInstanceInventoryRegister;
     }
 
+    /**
+     * 注册前先通过缓存服务获取
+     * @param networkAddress
+     * @param properties
+     * @return
+     */
     @Override
     public int getOrCreate(String networkAddress, JsonObject properties) {
         int addressId = getNetworkAddressInventoryCache().getAddressId(networkAddress);
@@ -95,6 +101,7 @@ public class NetworkAddressInventoryRegister implements INetworkAddressInventory
             newNetworkAddress.setRegisterTime(now);
             newNetworkAddress.setHeartbeatTime(now);
 
+            // 这里最后就会插入到数据库 与 从 CacheDAO 相对应 (CacheDAO 就是查询了之前插入的数据)
             InventoryStreamProcessor.getInstance().in(newNetworkAddress);
         }
 

@@ -78,7 +78,7 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
             lastCommandCreateTime = task.getCreateTime();
         }
 
-        // check profile task limit  检测能否正常添加
+        // check profile task limit  检测能否正常添加     (task必须携带firstOPName)
         final CheckResult dataError = checkProfileTaskSuccess(task);
         if (!dataError.isSuccess()) {
             logger.warn(
@@ -127,6 +127,7 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
     /**
      * active the selected profile task to execution task, and start a removal task for it.
      * 当为该 executionService 添加一个task 后 会在该任务的 startTime 时触发该方法
+     * 一个 task 代表以某个 operate 为起点的链路 那么每次 全局只允许监控以一个operate 为起点的链路
      */
     private synchronized void processProfileTask(ProfileTask task) {
         // make sure prev profile task already stopped  首先停止当前正在执行的task
@@ -139,6 +140,7 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
         // start profiling this task  执行 ProfileThread
         currentStartedTaskContext.startProfiling(PROFILE_EXECUTOR);
 
+        // 任务启动后会在一定时间内自动关闭
         PROFILE_TASK_SCHEDULE.schedule(
             () -> stopCurrentProfileTask(currentStartedTaskContext), task.getDuration(), TimeUnit.MINUTES);
     }
@@ -156,7 +158,7 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
         // current execution stop running
         needToStop.stopProfiling();
 
-        // remove task
+        // remove task  代表待执行的所有 profileTask
         profileTaskList.remove(needToStop.getTask());
 
         // notify profiling task has finished
@@ -172,6 +174,9 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
     public void boot() {
     }
 
+    /**
+     * 监听链路上下文 跟 TraceSegmentServiceClient 监听的不是同种对象
+     */
     @Override
     public void onComplete() {
         // add trace finish notification 维护全局范围内的监听器
@@ -271,11 +276,12 @@ public class ProfileTaskExecutionService implements BootService, TracingThreadLi
     }
 
     /**
-     * 钩子函数 在监听到某个 context 结束时触发   关闭用于监控该 TracingContext的 ThreadProfiler
+     * 代表某个链路任务执行完成了 回过来停止绑定的 profile任务  (他们之间依赖 全局链路id 进行匹配)
      * @param tracingContext
      */
     @Override
     public void afterMainThreadFinish(TracingContext tracingContext) {
+        // 因为链路已经结束 所以不需要再收集信息了
         if (tracingContext.isProfiling()) {
             // stop profiling tracing context
             ProfileTaskExecutionContext currentExecutionContext = taskExecutionContext.get();

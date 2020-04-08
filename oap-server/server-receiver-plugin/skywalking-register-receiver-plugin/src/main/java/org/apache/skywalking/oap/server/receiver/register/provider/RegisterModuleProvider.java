@@ -54,6 +54,7 @@ public class RegisterModuleProvider extends ModuleProvider {
         GRPCHandlerRegister grpcHandlerRegister = getManager().find(SharingServerModule.NAME)
                                                               .provider()
                                                               .getService(GRPCHandlerRegister.class);
+        // 为 oap对外暴露的 GRPC 服务器 增加2个handler
         grpcHandlerRegister.addHandler(new RegisterServiceHandler(getManager()));
         grpcHandlerRegister.addHandler(new ServiceInstancePingServiceHandler(getManager()));
     }

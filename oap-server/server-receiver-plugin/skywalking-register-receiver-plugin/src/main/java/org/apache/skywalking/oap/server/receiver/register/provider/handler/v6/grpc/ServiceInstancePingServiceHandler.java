@@ -38,12 +38,16 @@ import org.apache.skywalking.oap.server.library.server.grpc.GRPCHandler;
 /**
  * ServiceInstancePingServiceHandler responses the requests for instance ping. Trigger the heartbeat update and push the
  * commands to the downstream.
+ * 该对象负责接收 oap 服务的心跳信息  那么应该会有某个地方定期让这些没有收到心跳的服务下线
  */
 @Slf4j
 public class ServiceInstancePingServiceHandler extends ServiceInstancePingGrpc.ServiceInstancePingImplBase implements GRPCHandler {
     private final ServiceInstanceInventoryCache serviceInstanceInventoryCache;
     private final IServiceInventoryRegister serviceInventoryRegister;
     private final IServiceInstanceInventoryRegister serviceInstanceInventoryRegister;
+    /**
+     * 该对象用于生成命令 影响client的行为
+     */
     private final CommandService commandService;
 
     public ServiceInstancePingServiceHandler(ModuleManager moduleManager) {
@@ -59,14 +63,22 @@ public class ServiceInstancePingServiceHandler extends ServiceInstancePingGrpc.S
         this.commandService = moduleManager.find(CoreModule.NAME).provider().getService(CommandService.class);
     }
 
+    /**
+     * 代表接收到 client 心跳
+     * @param request
+     * @param responseObserver
+     */
     @Override
     public void doPing(ServiceInstancePingPkg request, StreamObserver<Commands> responseObserver) {
+        // 代表接收到哪个服务实例的信息
         int serviceInstanceId = request.getServiceInstanceId();
         long heartBeatTime = request.getTime();
+        // 更新心跳时间并持久化
         serviceInstanceInventoryRegister.heartbeat(serviceInstanceId, heartBeatTime);
 
         ServiceInstanceInventory serviceInstanceInventory = serviceInstanceInventoryCache.get(serviceInstanceId);
         if (Objects.nonNull(serviceInstanceInventory)) {
+            // 更新服务级别的心跳时间
             serviceInventoryRegister.heartbeat(serviceInstanceInventory.getServiceId(), heartBeatTime);
             responseObserver.onNext(Commands.getDefaultInstance());
         } else {
@@ -75,6 +87,7 @@ public class ServiceInstancePingServiceHandler extends ServiceInstancePingGrpc.S
                 serviceInstanceId
             );
 
+            // 代表已经查询不到服务实例了  发起重置命令
             final ServiceResetCommand resetCommand = commandService.newResetCommand(
                 request.getServiceInstanceId(), request
                     .getTime(), request.getServiceInstanceUUID());

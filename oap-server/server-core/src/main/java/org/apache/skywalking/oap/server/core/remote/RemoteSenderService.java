@@ -61,9 +61,10 @@ public class RemoteSenderService implements Service {
      * @param nextWorkName points to the worker to process the data when {@link RemoteServiceHandler} received.  这个远端名字就好像是一个节点
      * @param streamData   data to be sent
      * @param selector     strategy implementation to choose suitable OAP node.
+     *                     当接收到数据时  通过该服务对象 选择一个远端地址发送数据
      */
     public void send(String nextWorkName, StreamData streamData, Selector selector) {
-        // 该对象内部维护了 本节点所有的client  每个client 对应到一个远端server
+        // 该对象内部维护了 本节点连接到集群内所有的client  每个client 对应到一个远端server
         RemoteClientManager clientManager = moduleManager.find(CoreModule.NAME)
                                                          .provider()
                                                          .getService(RemoteClientManager.class);

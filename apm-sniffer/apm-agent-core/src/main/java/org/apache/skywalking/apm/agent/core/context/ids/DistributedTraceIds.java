@@ -22,10 +22,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-/**
- * 内部包含了一组全局id
- * 每次跨进行的时候 应该就是将新的全局id 连接到上个id 并维护在list中 也就是一次完整的调用应该是对应一个该对象
- */
 public class DistributedTraceIds {
     private LinkedList<DistributedTraceId> relatedGlobalTraces;
 
@@ -46,7 +42,7 @@ public class DistributedTraceIds {
      * @param distributedTraceId
      */
     public void append(DistributedTraceId distributedTraceId) {
-        // TODO 这里是什么意思 每添加一个id 移除一个 NewId
+        // 这样就只有发起者 是包含NewDistributedTraceId 的 其余间接被触发的 链路segment 都依赖于之前的 segment 那么将他们的id 设置进来时 就会将 NewDistributedTraceId 移除
         if (relatedGlobalTraces.size() > 0 && relatedGlobalTraces.getFirst() instanceof NewDistributedTraceId) {
             relatedGlobalTraces.removeFirst();
         }

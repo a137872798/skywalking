@@ -43,6 +43,9 @@ public class ProfileTaskCache implements Service {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProfileTaskCache.class);
 
+    /**
+     * 该缓存中存放 准备指定的 profile 任务
+     */
     private final Cache<Integer, List<ProfileTask>> profileTaskDownstreamCache;
     private final Cache<String, ProfileTask> profileTaskIdCache;
 

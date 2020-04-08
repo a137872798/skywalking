@@ -47,6 +47,7 @@ import org.apache.tomcat.util.http.Parameters;
  * {@link TomcatInvokeInterceptor} fetch the serialized context data by using {@link
  * HttpServletRequest#getHeader(String)}. The {@link TraceSegment#refs} of current trace segment will reference to the
  * trace segment id of the previous level if the serialized context is not null.
+ * 该对象用于拦截 tomcat
  */
 public class TomcatInvokeInterceptor implements InstanceMethodsAroundInterceptor {
 

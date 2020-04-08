@@ -35,7 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * 该对象应该是用于将 command 发送到服务器
+ * 该对象是处理 oap 返回的command
  */
 @DefaultImplementor
 public class CommandService implements BootService, Runnable {
@@ -48,11 +48,11 @@ public class CommandService implements BootService, Runnable {
      */
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     /**
-     * 存放任务的阻塞队列
+     * 这里存放的是待处理的
      */
     private LinkedBlockingQueue<BaseCommand> commands = new LinkedBlockingQueue<BaseCommand>(64);
     /**
-     * 缓存最近发送的命令  serialNum 应该是类似于 reqId的东西
+     * 这里存放的是已经处理过的
      */
     private CommandSerialNumberCache serialNumberCache = new CommandSerialNumberCache();
 
@@ -80,7 +80,7 @@ public class CommandService implements BootService, Runnable {
 
         while (isRunning) {
             try {
-                // 从阻塞队列中取出command
+                // 从阻塞队列中取出command  因为是单线程从command 拉取任务执行所以不会出现并发问题
                 BaseCommand command = commands.take();
 
                 // 代表command 对应的 reqId 已经被处理过了 那么就忽略本次数据
@@ -90,6 +90,7 @@ public class CommandService implements BootService, Runnable {
 
                 // 开始处理command 并且添加到容器中
                 commandExecutorService.execute(command);
+                // 处理完后保存到队列中
                 serialNumberCache.add(command.getSerialNumber());
             } catch (InterruptedException e) {
                 LOGGER.error(e, "Failed to take commands.");
@@ -135,8 +136,10 @@ public class CommandService implements BootService, Runnable {
         // 遍历内部的command
         for (Command command : commands.getCommandsList()) {
             try {
+                // BaseCommand 包含了一个请求的随机数 确保该请求唯一
                 BaseCommand baseCommand = CommandDeserializer.deserialize(command);
 
+                // 代表已经处理过  因为使用的 cache 对象内部使用了阻塞队列 所以解决并发写入和查询
                 if (isCommandExecuted(baseCommand)) {
                     LOGGER.warn("Command[{}] is executed, ignored", baseCommand.getCommand());
                     continue;

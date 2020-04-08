@@ -36,8 +36,14 @@ import org.apache.skywalking.oap.server.library.server.ServerException;
 import org.apache.skywalking.oap.server.library.server.grpc.GRPCServer;
 import org.apache.skywalking.oap.server.library.server.jetty.JettyServer;
 
+/**
+ *
+ */
 public class SharingServerModuleProvider extends ModuleProvider {
 
+    /**
+     * 该对象内部存放了 GRPC 和 HTTPClient 的基本配置
+     */
     private final SharingServerConfig config;
     private GRPCServer grpcServer;
     private JettyServer jettyServer;
@@ -64,6 +70,9 @@ public class SharingServerModuleProvider extends ModuleProvider {
         return config;
     }
 
+    /**
+     * 读取配置文件的数据 并初始化服务器
+     */
     @Override
     public void prepare() {
         if (config.getRestPort() != 0) {
@@ -71,6 +80,7 @@ public class SharingServerModuleProvider extends ModuleProvider {
                 .getRestPort(), config.getRestContextPath());
             jettyServer.initialize();
 
+            // 该服务就是往 本jettyServer 设置处理器
             this.registerServiceImplementation(JettyHandlerRegister.class, new JettyHandlerRegisterImpl(jettyServer));
         } else {
             this.receiverJettyHandlerRegister = new ReceiverJettyHandlerRegister();
@@ -110,6 +120,7 @@ public class SharingServerModuleProvider extends ModuleProvider {
             grpcServer.addHandler(new HealthCheckServiceHandler());
         }
 
+        // 设置相关字段
         if (Objects.nonNull(receiverGRPCHandlerRegister)) {
             receiverGRPCHandlerRegister.setGrpcHandlerRegister(getManager().find(CoreModule.NAME)
                                                                            .provider()

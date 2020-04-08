@@ -26,6 +26,10 @@ import java.util.Map;
 import org.apache.skywalking.oap.server.core.analysis.metrics.annotation.MetricsFunction;
 
 public class MetricsHolder {
+
+    /**
+     * 这里包含了所有携带 @MetricsFunction 注解的类  基于注解是为了便于插拔吗
+     */
     private static Map<String, Class<? extends org.apache.skywalking.oap.server.core.analysis.metrics.Metrics>> REGISTER = new HashMap<>();
 
     public static void init() throws IOException {

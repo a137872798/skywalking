@@ -34,6 +34,9 @@ import static org.apache.skywalking.apm.agent.core.conf.Config.Dictionary.SERVIC
  */
 public enum NetworkAddressDictionary {
     INSTANCE;
+    /**
+     * key address  value  addressId  (addressId 相当于本条数据在 dao层的id)
+     */
     private Map<String, Integer> serviceDictionary = new ConcurrentHashMap<>();
     private Set<String> unRegisterServices = ConcurrentHashMap.newKeySet();
 
@@ -47,7 +50,7 @@ public enum NetworkAddressDictionary {
         if (applicationId != null) {
             return new Found(applicationId);
         } else {
-            // 当没有找到地址对应的app信息时 添加到对应容器中
+            // 当没有找到地址对应的app信息时 并不会选择立即注册 而是通过ServiceAndEnpointRegisterClient 进行批量注册
             if (serviceDictionary.size() + unRegisterServices.size() < SERVICE_CODE_BUFFER_SIZE) {
                 unRegisterServices.add(networkAddress);
             }
@@ -65,6 +68,7 @@ public enum NetworkAddressDictionary {
                 .doNetworkAddressRegister(NetAddresses.newBuilder()
                                                       .addAllAddresses(unRegisterServices)
                                                       .build());
+            // 这里应该是注册成功的id  也就是注册成功就会从容器中移除  第一次都不会立即注册成功 因为oap内部生产者与消费者是解耦的
             if (networkAddressMappings.getAddressIdsCount() > 0) {
                 for (KeyIntValuePair keyWithIntegerValue : networkAddressMappings.getAddressIdsList()) {
                     unRegisterServices.remove(keyWithIntegerValue.getKey());

@@ -48,13 +48,14 @@ public class TraceSegment {
      * we use this {@code #refs} to link them.
      * <p>
      * This field will not be serialized. Keeping this field is only for quick accessing.
+     * 代表该对象是基于哪些ref的  比如 A 调用B B的refs中就有抽取A信息生成的 ref
      */
     private List<TraceSegmentRef> refs;
 
     /**
      * The spans belong to this trace segment. They all have finished. All active spans are hold and controlled by
      * "skywalking-api" module.
-     * 每个段内部维护一组span  首先通过 TracingContext 来申请 span 对象 而当某个span 使用完毕后 通过调用finish 会转发到该方法
+     * 这里存放的是 调用完成的 span  一个 segment 对应一个完整的调用链 其中每次跨进程调用都会生成一个span  当某环调用完成时 span 被标记finish 同时会添加到该列表中
      */
     private List<AbstractTracingSpan> spans;
 
@@ -69,7 +70,7 @@ public class TraceSegment {
     private DistributedTraceIds relatedGlobalTraces;
 
     /**
-     * true 代表之后不需要为该对象生成样本
+     * 代表本对象是否作废
      */
     private boolean ignore = false;
 
@@ -84,13 +85,13 @@ public class TraceSegment {
      * Create a default/empty trace segment, with current time as start time, and generate a new segment id.
      */
     public TraceSegment() {
-        // 整个链路被分成多级 Segment -> Span
+        // 生成全局id
         this.traceSegmentId = GlobalIdGenerator.generate();
         // 存放该 segment 下所有的span 对象
         this.spans = new LinkedList<>();
-        // 该对象包含了一组全局id
+        // 本次 整个调用链涉及到的所有全局id
         this.relatedGlobalTraces = new DistributedTraceIds();
-        // 这里又生成了一个全局id 并保存到list 中
+        // 创建 segment 时   为自身创建一个链路id  并添加到 list 中
         this.relatedGlobalTraces.append(new NewDistributedTraceId());
         this.createTime = System.currentTimeMillis();
     }
@@ -99,7 +100,6 @@ public class TraceSegment {
      * Establish the link between this segment and its parents.
      *
      * @param refSegment {@link TraceSegmentRef}
-     * 设置一个 ref 对象 ref对象像是 segment的描述信息
      */
     public void ref(TraceSegmentRef refSegment) {
         if (refs == null) {
@@ -128,7 +128,7 @@ public class TraceSegment {
 
     /**
      * Finish this {@link TraceSegment}. <p> return this, for chaining
-     * 根据是否创建了过多的 span 来终止该 span 对象
+     * 判断本 segment 从创建到现在是否创建过多的span
      */
     public TraceSegment finish(boolean isSizeLimited) {
         this.isSizeLimited = isSizeLimited;
@@ -171,20 +171,23 @@ public class TraceSegment {
      * This is a high CPU cost method, only called when sending to collector or test cases.
      *
      * @return the segment as GRPC service parameter
+     * 将该对象转换成 适合传输到 oap 的数据格式
      */
     public UpstreamSegment transform() {
         UpstreamSegment.Builder upstreamBuilder = UpstreamSegment.newBuilder();
+        // 追加全局链路信息
         for (DistributedTraceId distributedTraceId : getRelatedGlobalTraces()) {
             upstreamBuilder = upstreamBuilder.addGlobalTraceIds(distributedTraceId.toUniqueId());
         }
         SegmentObject.Builder traceSegmentBuilder = SegmentObject.newBuilder();
         /*
          * Trace Segment
+         * 设置这个段对象本身的 id
          */
         traceSegmentBuilder.setTraceSegmentId(this.traceSegmentId.transform());
         // Don't serialize TraceSegmentReference
 
-        // SpanObject
+        // SpanObject   将当前段所有的span设置到builder中
         for (AbstractTracingSpan span : this.spans) {
             traceSegmentBuilder.addSpans(span.transform());
         }

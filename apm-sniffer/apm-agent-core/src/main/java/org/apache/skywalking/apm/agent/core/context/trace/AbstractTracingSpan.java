@@ -45,9 +45,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * id
      */
     protected int spanId;
-    /**
-     * 父对象的id 可能会是这种调用  A -> B -> C 那么B到C 时应该就要记录A -> B 对应的spanId
-     */
+
     protected int parentSpanId;
     /**
      * 内部包含了一组标签
@@ -117,7 +115,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      * The refs of parent trace segments, except the primary one. For most RPC call, {@link #refs} contains only one
      * element, but if this segment is a start span of batch process, the segment faces multi parents, at this moment,
      * we use this {@link #refs} to link them.
-     * 应该是记录到目前这一次跨进程前所有的 段信息
+     * 该span 依赖的segment (由这个segment 发起的请求间接创建了这个span对象)
      */
     protected List<TraceSegmentRef> refs;
 
@@ -185,7 +183,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
      */
     public boolean finish(TraceSegment owner) {
         this.endTime = System.currentTimeMillis();
-        // 将span 添加到segment 中
+        // 执行完毕的某个span 会添加到 segment 中
         owner.archive(this);
         return true;
     }
@@ -384,7 +382,7 @@ public abstract class AbstractTracingSpan implements AbstractSpan {
     }
 
     /**
-     * 追加一个段的描述信息
+     * 代表本次创建的span 是由某个 segment 发起的
      * @param ref segment ref
      */
     @Override

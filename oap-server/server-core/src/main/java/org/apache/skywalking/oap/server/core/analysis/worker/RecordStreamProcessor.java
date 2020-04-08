@@ -36,7 +36,7 @@ import org.apache.skywalking.oap.server.core.storage.model.Model;
 import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
 
 /**
- * 流式处理record
+ * 处理record 类型的数据
  */
 public class RecordStreamProcessor implements StreamProcessor<Record> {
 
@@ -81,7 +81,7 @@ public class RecordStreamProcessor implements StreamProcessor<Record> {
             throw new UnexpectedException("Create " + stream.builder().getSimpleName() + " record DAO failure.", e);
         }
 
-        // 找到 modelSet 模块
+        // 找到 modelSet 模块   它相当于 管理整个统计数据相关的模型
         IModelSetter modelSetter = moduleDefineHolder.find(CoreModule.NAME).provider().getService(IModelSetter.class);
         Model model = modelSetter.putIfAbsent(recordClass, stream.scopeId(), new Storage(stream.name(), true, true, Downsampling.Second), true);
         RecordPersistentWorker persistentWorker = new RecordPersistentWorker(moduleDefineHolder, model, recordDAO);

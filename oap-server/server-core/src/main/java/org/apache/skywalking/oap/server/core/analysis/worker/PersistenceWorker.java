@@ -78,9 +78,11 @@ public abstract class PersistenceWorker<INPUT extends StorageData, CACHE extends
         boolean isSwitch;
         try {
             if (isSwitch = getCache().trySwitchPointer()) {
+                // 切换容器 并将目标容器修改成读取状态
                 getCache().switchPointer();
             }
         } finally {
+            // 确保计数器正常恢复
             getCache().trySwitchPointerFinally();
         }
         return isSwitch;
@@ -95,6 +97,10 @@ public abstract class PersistenceWorker<INPUT extends StorageData, CACHE extends
      */
     public abstract void prepareBatch(Collection<INPUT> lastCollection, List<PrepareRequest> prepareRequests);
 
+    /**
+     * 将数据读取出来并转换成 执行单元
+     * @param prepareRequests
+     */
     public final void buildBatchRequests(List<PrepareRequest> prepareRequests) {
         try {
             SWCollection<INPUT> last = getCache().getLast();

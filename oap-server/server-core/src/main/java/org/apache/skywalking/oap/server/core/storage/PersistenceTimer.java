@@ -45,18 +45,28 @@ public enum PersistenceTimer {
 
     private Boolean isStarted = false;
     private final Boolean debug;
+    // 通过遥感模块 创建各个统计数据项
     private CounterMetrics errorCounter;
     private HistogramMetrics prepareLatency;
     private HistogramMetrics executeLatency;
     private long lastTime = System.currentTimeMillis();
+    /**
+     * 存储待执行的sql
+     */
     private final List<PrepareRequest> prepareRequests = new ArrayList<>(50000);
 
     PersistenceTimer() {
         this.debug = System.getProperty("debug") != null;
     }
 
+    /**
+     * 启动持久化扫描对象
+     * @param moduleManager
+     * @param moduleConfig
+     */
     public void start(ModuleManager moduleManager, CoreModuleConfig moduleConfig) {
         logger.info("persistence timer start");
+        // 批存储对象 就是预先封装好预备执行的sql param 之后在合适的时机手动触发 批量执行
         IBatchDAO batchDAO = moduleManager.find(StorageModule.NAME).provider().getService(IBatchDAO.class);
 
         MetricsCreator metricsCreator = moduleManager.find(TelemetryModule.NAME)
@@ -66,6 +76,7 @@ public enum PersistenceTimer {
         prepareLatency = metricsCreator.createHistogramMetric("persistence_timer_bulk_prepare_latency", "Latency of the prepare stage in persistence timer", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);
         executeLatency = metricsCreator.createHistogramMetric("persistence_timer_bulk_execute_latency", "Latency of the execute stage in persistence timer", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);
 
+        // 这个标识根本没意义啊 如果不是并发场景 人为可控的话 只要调用一次start就好 如果在并发场景这个标识又不满足可见性
         if (!isStarted) {
             Executors.newSingleThreadScheduledExecutor()
                      .scheduleWithFixedDelay(new RunnableWithExceptionProtection(() -> extractDataAndSave(batchDAO), t -> logger
@@ -75,6 +86,10 @@ public enum PersistenceTimer {
         }
     }
 
+    /**
+     * 定时持久化数据
+     * @param batchDAO
+     */
     private void extractDataAndSave(IBatchDAO batchDAO) {
         if (logger.isDebugEnabled()) {
             logger.debug("Extract data and save");
@@ -86,6 +101,7 @@ public enum PersistenceTimer {
             HistogramMetrics.Timer timer = prepareLatency.createTimer();
 
             try {
+                // 将当前已经存储的所有worker 全部转移进来
                 List<PersistenceWorker> persistenceWorkers = new ArrayList<>();
                 persistenceWorkers.addAll(TopNStreamProcessor.getInstance().getPersistentWorkers());
                 persistenceWorkers.addAll(MetricsStreamProcessor.getInstance().getPersistentWorkers());
@@ -95,10 +111,13 @@ public enum PersistenceTimer {
                         logger.debug("extract {} worker data and save", worker.getClass().getName());
                     }
 
+                    // 这里做读写分离
                     if (worker.flushAndSwitch()) {
+                        // 将worker 中的数据转换成sql 并添加到 req列表中
                         worker.buildBatchRequests(prepareRequests);
                     }
 
+                    // databaseSession 相关   TopN数据忽略该方法
                     worker.endOfRound(System.currentTimeMillis() - lastTime);
                 });
 
@@ -111,6 +130,7 @@ public enum PersistenceTimer {
 
             HistogramMetrics.Timer executeLatencyTimer = executeLatency.createTimer();
             try {
+                // 挨个执行
                 if (CollectionUtils.isNotEmpty(prepareRequests)) {
                     batchDAO.synchronous(prepareRequests);
                 }

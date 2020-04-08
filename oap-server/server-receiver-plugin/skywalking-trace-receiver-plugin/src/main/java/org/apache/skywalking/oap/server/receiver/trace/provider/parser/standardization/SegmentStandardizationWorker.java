@@ -34,6 +34,9 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 该对象专门用于处理链路相关的数据
+ */
 public class SegmentStandardizationWorker extends AbstractWorker<SegmentStandardization> {
 
     private static final Logger logger = LoggerFactory.getLogger(SegmentStandardizationWorker.class);

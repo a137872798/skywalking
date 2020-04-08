@@ -37,6 +37,10 @@ import org.apache.skywalking.apm.network.language.agent.UniqueId;
 public class TraceSegmentSampler {
     private int sampleRate = 10000;
 
+    /**
+     * 指定采样比率进行初始化
+     * @param sampleRate
+     */
     public TraceSegmentSampler(int sampleRate) {
         this.sampleRate = sampleRate;
     }

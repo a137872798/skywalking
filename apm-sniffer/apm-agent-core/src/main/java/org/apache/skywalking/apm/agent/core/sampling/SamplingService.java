@@ -40,6 +40,7 @@ import org.apache.skywalking.apm.util.RunnableWithExceptionProtection;
  * By default, SAMPLING is on, and  {@link Config.Agent#SAMPLE_N_PER_3_SECS }
  * 该对象接收 operate_name 并生成上下文对象
  * 用于控制单位时间(3s)内生成的链路上下文数量
+ * 作为第三个服务
  */
 @DefaultImplementor
 public class SamplingService implements BootService {

@@ -20,6 +20,10 @@ package org.apache.skywalking.oap.server.receiver.register.module;
 
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 
+/**
+ * 该模块用于管理服务实例注册   比如某个应用使用了探针后 会通过ServiceAndEndpointRegisterClient 将服务名称传过来 然后由该对象分配一个id
+ * ip应该是要在集群范围内唯一吧 没有跟其他节点通信的前提下如何创建唯一id ???
+ */
 public class RegisterModule extends ModuleDefine {
 
     public RegisterModule() {

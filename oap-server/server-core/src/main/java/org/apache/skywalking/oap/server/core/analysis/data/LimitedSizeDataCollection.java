@@ -31,12 +31,8 @@ import org.apache.skywalking.oap.server.core.storage.ComparableStorageData;
  */
 public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageData> implements SWCollection<STORAGE_DATA> {
 
-    /**
-     * 内部实质是一个hashMap key 和 value 同类型 且 一个key 对应多个value
-     */
     private final HashMap<STORAGE_DATA, LinkedList<STORAGE_DATA>> data;
     private final int limitedSize;
-    // 是否正在写入 以及 读取 推测使用这些标识来解决并发问题 比如读取标识后再决定是否允许读取/插入  那么为什么不使用并发容器呢???
     private volatile boolean writing;
     private volatile boolean reading;
 
@@ -103,7 +99,7 @@ public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageDat
      */
     @Override
     public void put(STORAGE_DATA value) {
-        // 首先将value 作为key 读取数据
+        // 该数据结构是用于实现 TopN的
         LinkedList<STORAGE_DATA> storageDataList = this.data.get(value);
         if (storageDataList == null) {
             storageDataList = new LinkedList<>();
@@ -116,7 +112,7 @@ public class LimitedSizeDataCollection<STORAGE_DATA extends ComparableStorageDat
             return;
         }
 
-        // 从头开始遍历每个值
+        // 从头开始遍历每个值 只保留最大的值
         for (int i = 0; i < storageDataList.size(); i++) {
             STORAGE_DATA storageData = storageDataList.get(i);
             if (value.compareTo(storageData) <= 0) {

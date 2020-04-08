@@ -31,7 +31,7 @@ import org.apache.skywalking.apm.util.StringUtil;
  * {@link TraceSegmentRef} is like a pointer, which ref to another {@link TraceSegment}, use {@link #spanId} point to
  * the exact span of the ref {@link TraceSegment}.
  * <p>
- *     对应一个segment的描述信息 通过 carrier 填充属性
+ *     相当于某个 segment与其他segment 的连接点
  */
 public class TraceSegmentRef {
 
@@ -82,9 +82,15 @@ public class TraceSegmentRef {
      */
     public TraceSegmentRef(ContextCarrier carrier) {
         this.type = SegmentRefType.CROSS_PROCESS;
+        // 比如 dubbo a服务调用b服务 那么 carrier会记录a的链路信息 当传播到b时 会接收 并解析它
+        // 发起整个链路调用的 segmentId
         this.traceSegmentId = carrier.getTraceSegmentId();
+        // 上一环对应的spanId
         this.spanId = carrier.getSpanId();
+
+        // 链路发起者的 应用id
         this.parentServiceInstanceId = carrier.getParentServiceInstanceId();
+        // 上一环的应用id
         this.entryServiceInstanceId = carrier.getEntryServiceInstanceId();
         String host = carrier.getPeerHost();
         if (host.charAt(0) == '#') {

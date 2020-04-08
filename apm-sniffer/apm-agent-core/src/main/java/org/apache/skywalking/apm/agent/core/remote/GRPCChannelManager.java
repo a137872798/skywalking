@@ -21,6 +21,7 @@ package org.apache.skywalking.apm.agent.core.remote;
 import io.grpc.Channel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -29,6 +30,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.skywalking.apm.agent.core.boot.BootService;
 import org.apache.skywalking.apm.agent.core.boot.DefaultImplementor;
 import org.apache.skywalking.apm.agent.core.boot.DefaultNamedThreadFactory;
@@ -60,6 +62,9 @@ public class GRPCChannelManager implements BootService, Runnable {
      */
     private volatile List<String> grpcServers;
     private volatile int selectedIdx = -1;
+    /**
+     * 代表重试次数
+     */
     private volatile int reconnectCount = 0;
 
     @Override
@@ -75,18 +80,19 @@ public class GRPCChannelManager implements BootService, Runnable {
         // 如果没有设置 后端服务器 那么就不需要发送数据了
         if (Config.Collector.BACKEND_SERVICE.trim().length() == 0) {
             logger.error("Collector server addresses are not set.");
+            // 代表代理对象不会将任何数据上传到oap服务器
             logger.error("Agent will not uplink any data.");
             return;
         }
         grpcServers = Arrays.asList(Config.Collector.BACKEND_SERVICE.split(","));
         connectCheckFuture = Executors.newSingleThreadScheduledExecutor(
-            new DefaultNamedThreadFactory("GRPCChannelManager")
+                new DefaultNamedThreadFactory("GRPCChannelManager")
         ).scheduleAtFixedRate(
                 // 该对象会捕获出现的异常 比使用降级策略来处理 对应到这里就是 logger.error
-            new RunnableWithExceptionProtection(
-                this,
-                t -> logger.error("unexpected exception.", t)
-            ), 0, Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL, TimeUnit.SECONDS
+                new RunnableWithExceptionProtection(
+                        this,
+                        t -> logger.error("unexpected exception.", t)
+                ), 0, Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL, TimeUnit.SECONDS
         );
     }
 
@@ -107,12 +113,16 @@ public class GRPCChannelManager implements BootService, Runnable {
         logger.debug("Selected collector grpc service shutdown.");
     }
 
+    /**
+     * 在定时器中 执行该任务 用于确保连接
+     */
     @Override
     public void run() {
         logger.debug("Selected collector grpc service running, reconnect:{}.", reconnect);
         // 当出现了某些异常时  该标识会设置成true
         if (reconnect) {
-            // 并不是连接到所有server 而是会通过轮询策略选择其中一个地址
+            // 并不是连接到所有server 而是会通过轮询策略选择其中一个地址   假设上面的一组地址 属于同一个 skywalking集群
+            // 那么集群内所有接收到的数据本身就可以通过 ForeverFirst 集中到某一个节点 所以这里不需要维护所有远端服务器的连接
             if (grpcServers.size() > 0) {
                 String server = "";
                 try {
@@ -123,23 +133,26 @@ public class GRPCChannelManager implements BootService, Runnable {
                         server = grpcServers.get(index);
                         String[] ipAndPort = server.split(":");
 
+                        // 当出现异常时 先关闭之前的连接
                         if (managedChannel != null) {
                             managedChannel.shutdownNow();
                         }
 
                         // 这里应该没有真正完成连接吧
                         managedChannel = GRPCChannel.newBuilder(ipAndPort[0], Integer.parseInt(ipAndPort[1]))
-                                                    // 这2个对象用于配置channel
-                                                    .addManagedChannelBuilder(new StandardChannelBuilder())
-                                                    .addManagedChannelBuilder(new TLSChannelBuilder())
-                                                    // 这2个对象用于装饰channel
-                                                    .addChannelDecorator(new AgentIDDecorator())
-                                                    .addChannelDecorator(new AuthenticationDecorator())
-                                                    .build();
+                                // 这2个对象用于配置channel
+                                .addManagedChannelBuilder(new StandardChannelBuilder())
+                                .addManagedChannelBuilder(new TLSChannelBuilder())
+                                // 这2个对象用于装饰channel
+                                .addChannelDecorator(new AgentIDDecorator())
+                                .addChannelDecorator(new AuthenticationDecorator())
+                                .build();
+                        // 某些 service 会设置监听器到该对象上 根据channel 对象 创建存根对象
                         notify(GRPCChannelStatus.CONNECTED);
                         // 当连接到某个服务后 重置相关标识
                         reconnectCount = 0;
                         reconnect = false;
+                        // 这里是触发了 底层 GRPC 的重连机制   当传入标识为false 时 代表不尝试重连 那么返回无连接状态时 等待触发下次任务
                     } else if (managedChannel.isConnected(++reconnectCount > Config.Agent.FORCE_RECONNECTION_PERIOD)) {
                         // Reconnect to the same server is automatically done by GRPC,
                         // therefore we are responsible to check the connectivity and
@@ -156,8 +169,8 @@ public class GRPCChannelManager implements BootService, Runnable {
             }
 
             logger.debug(
-                "Selected collector grpc service is not available. Wait {} seconds to retry",
-                Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL
+                    "Selected collector grpc service is not available. Wait {} seconds to retry",
+                    Config.Collector.GRPC_CHANNEL_CHECK_INTERVAL
             );
         }
     }
@@ -168,6 +181,7 @@ public class GRPCChannelManager implements BootService, Runnable {
 
     /**
      * 获取装饰完的channel 对象
+     *
      * @return
      */
     public Channel getChannel() {
@@ -197,6 +211,7 @@ public class GRPCChannelManager implements BootService, Runnable {
 
     /**
      * 判断产生的异常是否是网络异常
+     *
      * @param throwable
      * @return
      */
@@ -204,8 +219,8 @@ public class GRPCChannelManager implements BootService, Runnable {
         if (throwable instanceof StatusRuntimeException) {
             StatusRuntimeException statusRuntimeException = (StatusRuntimeException) throwable;
             return statusEquals(
-                statusRuntimeException.getStatus(), Status.UNAVAILABLE, Status.PERMISSION_DENIED,
-                Status.UNAUTHENTICATED, Status.RESOURCE_EXHAUSTED, Status.UNKNOWN
+                    statusRuntimeException.getStatus(), Status.UNAVAILABLE, Status.PERMISSION_DENIED,
+                    Status.UNAUTHENTICATED, Status.RESOURCE_EXHAUSTED, Status.UNKNOWN
             );
         }
         return false;

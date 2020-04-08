@@ -46,12 +46,12 @@ public class ExportEvent {
     public enum EventType {
         /**
          * The metrics aggregated in this bulk, not include the existing persistent data.
-         * 增量事件
+         * 代表本次的变化 而没有整合之前的数据
          */
         INCREMENT,
         /**
          * Final result of the metrics at this moment.
-         * 全量事件
+         * 基于原先的数据在本次变化之后的最终值
          */
         TOTAL
     }

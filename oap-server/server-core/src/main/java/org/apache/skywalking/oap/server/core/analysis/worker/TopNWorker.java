@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Top N worker is a persistence worker. Cache and order the data, flush in longer period.
+ * 该对象负责处理 TopN 数据   配合一个定时器 实现数据的持久化
  */
 public class TopNWorker extends PersistenceWorker<TopN, LimitedSizeDataCache<TopN>> {
 
@@ -48,6 +49,7 @@ public class TopNWorker extends PersistenceWorker<TopN, LimitedSizeDataCache<Top
     TopNWorker(ModuleDefineHolder moduleDefineHolder, Model model, int topNSize, long reportCycle,
         IRecordDAO recordDAO) {
         super(moduleDefineHolder);
+        // 根据长度 指定缓存大小   存放Metrics数据的容器是没有大小限制的
         this.limitedSizeDataCache = new LimitedSizeDataCache<>(topNSize);
         this.recordDAO = recordDAO;
         this.model = model;
@@ -81,6 +83,7 @@ public class TopNWorker extends PersistenceWorker<TopN, LimitedSizeDataCache<Top
      */
     @Override
     public boolean flushAndSwitch() {
+        // 相比父类多一个约束条件 就是 必须满足指定的间隔 才能持久化数据
         long now = System.currentTimeMillis();
         if (now - lastReportTimestamp <= reportCycle) {
             return false;
@@ -89,6 +92,11 @@ public class TopNWorker extends PersistenceWorker<TopN, LimitedSizeDataCache<Top
         return super.flushAndSwitch();
     }
 
+    /**
+     * topN的数据本身没有像 Metrics 这样复杂的处理逻辑
+     * @param lastCollection  the source of transformation, they are in memory object format.
+     * @param prepareRequests data in the formats for the final persistence operations.
+     */
     @Override
     public void prepareBatch(Collection<TopN> lastCollection, List<PrepareRequest> prepareRequests) {
         lastCollection.forEach(record -> {

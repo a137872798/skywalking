@@ -100,17 +100,21 @@ public class InventoryStreamProcessor implements StreamProcessor<RegisterSource>
             .scopeId());
 
         String remoteReceiverWorkerName = stream.name() + "_rec";
+        // 这是一个虚拟的远端节点  每次消费数据时 会从一组client 中选择一个 并执行 其余节点都会选择通过 gRPC 发送到远端 而如果是发送到本机 SelfClient 那么就会使用
+        //WorkerInstancesService 去处理 也就是委托给 RegisterPersistentWorker
         IWorkerInstanceSetter workerInstanceSetter = moduleDefineHolder.find(CoreModule.NAME)
                                                                        .provider()
                                                                        .getService(IWorkerInstanceSetter.class);
         // 这里添加 RegisterSource实例 与 worker的映射关系
         workerInstanceSetter.put(remoteReceiverWorkerName, persistentWorker, inventoryClass);
 
-        // 应该是负责主从机同步的 RegisterRemoteWorker 内部包含一个 remoteSenderService 负责将数据带到远端
+        // 该对象 对应的抽象含义是  一个包含本机和远端的处理器  至于数据具体由哪个节点来处理是隐藏的
         RegisterRemoteWorker remoteWorker = new RegisterRemoteWorker(moduleDefineHolder, remoteReceiverWorkerName);
 
+        // 包装worker 对象
         RegisterDistinctWorker distinctWorker = new RegisterDistinctWorker(moduleDefineHolder, remoteWorker);
 
+        // 最后添加映射关系
         entryWorkers.put(inventoryClass, distinctWorker);
     }
 

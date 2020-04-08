@@ -52,6 +52,11 @@ public class SegmentSpanListener implements FirstSpanListener, EntrySpanListener
     private int firstEndpointId = 0;
     private String firstEndpointName = "";
 
+    /**
+     *
+     * @param moduleManager
+     * @param sampler  采样对象
+     */
     private SegmentSpanListener(ModuleManager moduleManager, TraceSegmentSampler sampler) {
         this.sampler = sampler;
         this.sourceReceiver = moduleManager.find(CoreModule.NAME).provider().getService(SourceReceiver.class);
@@ -147,6 +152,9 @@ public class SegmentSpanListener implements FirstSpanListener, EntrySpanListener
     }
 
     public static class Factory implements SpanListenerFactory {
+        /**
+         * 采样对象
+         */
         private final TraceSegmentSampler sampler;
 
         public Factory(int segmentSamplingRate) {

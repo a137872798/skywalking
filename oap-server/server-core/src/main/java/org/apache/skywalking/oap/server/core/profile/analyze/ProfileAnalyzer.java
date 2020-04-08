@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * Analyze {@link ProfileStack} data to {@link ProfileAnalyzation}
  *
  * See: https://github.com/apache/skywalking/blob/421ba88dbfba48cdc5845547381aa4763775b4b1/docs/en/guides/backend-profile.md#thread-analyst
+ * 信息分析器
  */
 public class ProfileAnalyzer {
 
@@ -63,8 +64,10 @@ public class ProfileAnalyzer {
 
     /**
      * search snapshots and analyze
+     * 搜索快照并进行分析
      */
     public ProfileAnalyzation analyze(String segmentId, List<ProfileAnalyzeTimeRange> timeRanges) throws IOException {
+        // 分析树对象
         ProfileAnalyzation analyzation = new ProfileAnalyzation();
 
         // query sequence range list
@@ -93,6 +96,13 @@ public class ProfileAnalyzer {
         return analyzation;
     }
 
+    /**
+     *
+     * @param segmentId
+     * @param timeRanges
+     * @return
+     * @throws IOException
+     */
     protected SequenceSearch getAllSequenceRange(String segmentId, List<ProfileAnalyzeTimeRange> timeRanges) throws IOException {
         final List<SequenceSearch> searches = timeRanges.parallelStream().map(r -> {
             try {

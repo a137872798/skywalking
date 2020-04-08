@@ -33,15 +33,30 @@ import org.apache.skywalking.oap.server.library.module.ModuleDefineHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 相当于在这一层做了 批处理 尽可能的整合数据 并只进行一次处理
+ */
 public class RegisterDistinctWorker extends AbstractWorker<RegisterSource> {
 
     private static final Logger logger = LoggerFactory.getLogger(RegisterDistinctWorker.class);
 
     private final AbstractWorker<RegisterSource> nextWorker;
     private final DataCarrier<RegisterSource> dataCarrier;
+
+    /**
+     * value 也选择 source 是因为该容器的目的是 combine source    而针对 registerSource combine就是相关时间戳
+     */
     private final Map<RegisterSource, RegisterSource> sources;
+    /**
+     * 当前接收到的消息总数
+     */
     private int messageNum;
 
+    /**
+     *
+     * @param moduleDefineHolder
+     * @param nextWorker  该对象内部实际是一个集群   RegisterRemoteWorker  按照一定的策略选择一个节点去处理数据
+     */
     RegisterDistinctWorker(ModuleDefineHolder moduleDefineHolder, AbstractWorker<RegisterSource> nextWorker) {
         super(moduleDefineHolder);
         this.nextWorker = nextWorker;
@@ -58,6 +73,7 @@ public class RegisterDistinctWorker extends AbstractWorker<RegisterSource> {
         } catch (Exception e) {
             throw new UnexpectedException(e.getMessage(), e);
         }
+        // 添加消费者
         this.dataCarrier.consume(ConsumerPoolFactory.INSTANCE.get(name), new AggregatorConsumer(this));
     }
 
@@ -67,6 +83,10 @@ public class RegisterDistinctWorker extends AbstractWorker<RegisterSource> {
         dataCarrier.produce(source);
     }
 
+    /**
+     * 处理接收到的数据
+     * @param source
+     */
     private void onWork(RegisterSource source) {
         messageNum++;
 

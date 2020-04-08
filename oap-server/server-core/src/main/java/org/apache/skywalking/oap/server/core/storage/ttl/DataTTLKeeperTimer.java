@@ -72,7 +72,9 @@ public enum DataTTLKeeperTimer {
      * node list from {@link ClusterNodesQuery}.
      */
     private void delete() {
+        // 每隔一段时间获取当前集群中所有节点信息
         List<RemoteInstance> remoteInstances = clusterNodesQuery.queryRemoteNodes();
+        // 集群中的首节点是不删除的 同时一般来说会选择 foreverFirst策略 使得所有数据都会发往一个节点进行保存  那么也就是大部分数据实际上还是不会被删除 那么这个有啥用
         if (CollectionUtils.isNotEmpty(remoteInstances) && !remoteInstances.get(0).getAddress().isSelf()) {
             logger.info("The selected first getAddress is {}. Skip.", remoteInstances.get(0).toString());
             return;

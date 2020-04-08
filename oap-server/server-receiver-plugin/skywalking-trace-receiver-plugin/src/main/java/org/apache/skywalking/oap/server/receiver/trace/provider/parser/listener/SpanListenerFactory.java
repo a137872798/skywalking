@@ -26,5 +26,12 @@ import org.apache.skywalking.oap.server.receiver.trace.provider.TraceServiceModu
  * own creation factory.
  */
 public interface SpanListenerFactory {
+
+    /**
+     * 根据链路追踪配置生成对应的监听者
+     * @param moduleManager
+     * @param config
+     * @return
+     */
     SpanListener create(ModuleManager moduleManager, TraceServiceModuleConfig config);
 }

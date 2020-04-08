@@ -126,16 +126,26 @@ public class SkyWalkingAgent {
             this.pluginFinder = pluginFinder;
         }
 
+        /**
+         * 这里对相关对象进行增强
+         * @param builder
+         * @param typeDescription
+         * @param classLoader
+         * @param module
+         * @return
+         */
         @Override
         public DynamicType.Builder<?> transform(final DynamicType.Builder<?> builder,
                                                 final TypeDescription typeDescription,
                                                 final ClassLoader classLoader,
                                                 final JavaModule module) {
+            // 找到匹配的所有增强插件
             List<AbstractClassEnhancePluginDefine> pluginDefines = pluginFinder.find(typeDescription);
             if (pluginDefines.size() > 0) {
                 DynamicType.Builder<?> newBuilder = builder;
                 EnhanceContext context = new EnhanceContext();
                 for (AbstractClassEnhancePluginDefine define : pluginDefines) {
+                    // 采用链式包装 返回一共总的 builder 对象
                     DynamicType.Builder<?> possibleNewBuilder = define.define(
                         typeDescription, newBuilder, classLoader, context);
                     if (possibleNewBuilder != null) {

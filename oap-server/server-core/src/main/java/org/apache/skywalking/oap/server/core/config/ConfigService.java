@@ -23,6 +23,9 @@ import org.apache.skywalking.oap.server.core.CoreModuleConfig;
 import org.apache.skywalking.oap.server.core.DataTTLConfig;
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * 把配置中的 GRPC 信息抽取出来单独作为一个可访问的服务
+ */
 @Getter
 public class ConfigService implements Service {
     private final String gRPCHost;

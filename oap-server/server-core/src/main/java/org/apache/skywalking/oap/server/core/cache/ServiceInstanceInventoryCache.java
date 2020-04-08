@@ -34,6 +34,9 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.isNull;
 
+/**
+ * 存储服务实例
+ */
 public class ServiceInstanceInventoryCache implements Service {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceInstanceInventoryCache.class);

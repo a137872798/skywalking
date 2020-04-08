@@ -43,10 +43,17 @@ import org.apache.skywalking.oap.server.telemetry.TelemetryModule;
 
 import java.io.IOException;
 
+/**
+ * 当依赖中包含  TraceModule 时 自动配置该provider 并进行数据加载
+ */
 public class TraceModuleProvider extends ModuleProvider {
 
+    /**
+     * 有关链路追踪的配置
+     */
     private final TraceServiceModuleConfig moduleConfig;
     private SegmentParseV2.Producer segmentProducerV2;
+    // 网关和数据库的配置
     private DBLatencyThresholdsAndWatcher thresholds;
     private UninstrumentedGatewaysConfig uninstrumentedGatewaysConfig;
 
@@ -73,6 +80,7 @@ public class TraceModuleProvider extends ModuleProvider {
     public void prepare() throws ServiceNotProvidedException {
         thresholds = new DBLatencyThresholdsAndWatcher(moduleConfig.getSlowDBAccessThreshold(), this);
 
+        // 网关配置
         uninstrumentedGatewaysConfig = new UninstrumentedGatewaysConfig(this);
 
         moduleConfig.setDbLatencyThresholdsAndWatcher(thresholds);
@@ -83,8 +91,13 @@ public class TraceModuleProvider extends ModuleProvider {
         this.registerServiceImplementation(ISegmentParserService.class, new SegmentParserServiceImpl(segmentProducerV2));
     }
 
+    /**
+     * 获取segment解析监听器管理者
+     * @return
+     */
     public SegmentParserListenerManager listenerManager() {
         SegmentParserListenerManager listenerManager = new SegmentParserListenerManager();
+        // 是否要分析trace信息  要的话就添加几个特殊的工厂
         if (moduleConfig.isTraceAnalysis()) {
             listenerManager.add(new MultiScopesSpanListener.Factory());
             listenerManager.add(new ServiceMappingSpanListener.Factory());
@@ -95,6 +108,10 @@ public class TraceModuleProvider extends ModuleProvider {
         return listenerManager;
     }
 
+    /**
+     * 启动链路分析模块
+     * @throws ModuleStartException
+     */
     @Override
     public void start() throws ModuleStartException {
         DynamicConfigurationService dynamicConfigurationService = getManager().find(ConfigurationModule.NAME)
@@ -104,11 +121,14 @@ public class TraceModuleProvider extends ModuleProvider {
                                                               .provider()
                                                               .getService(GRPCHandlerRegister.class);
         try {
+            // 将2个监听动态配置的 watcher 设置到注册中心
             dynamicConfigurationService.registerConfigChangeWatcher(thresholds);
             dynamicConfigurationService.registerConfigChangeWatcher(uninstrumentedGatewaysConfig);
 
+            // 设置处理器 这样对端调用存根方法时就会触发handler的方法
             grpcHandlerRegister.addHandler(new TraceSegmentReportServiceHandler(segmentProducerV2, getManager()));
 
+            // 设置worker 对象
             SegmentStandardizationWorker standardizationWorkerV2 = new SegmentStandardizationWorker(getManager(), segmentProducerV2, moduleConfig
                 .getBufferPath(), moduleConfig.getBufferOffsetMaxFileSize(), moduleConfig.getBufferDataMaxFileSize(), moduleConfig
                 .isBufferFileCleanWhenRestart());
@@ -128,7 +148,7 @@ public class TraceModuleProvider extends ModuleProvider {
         return new String[] {
             TelemetryModule.NAME,
             CoreModule.NAME,
-            SharingServerModule.NAME,
+            SharingServerModule.NAME,   // 该模块就是启动 jetty 和 grpc  并且提供2个可以给服务器注册handler 的service
             ConfigurationModule.NAME
         };
     }

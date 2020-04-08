@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample alarm rules.
+# Sample alarm rules.   定义警报规则 也就是当数据满足下面的条件时触发警报逻辑
 rules:
   # Rule unique name, must be ended with `_rule`.
 #  endpoint_percent_rule:

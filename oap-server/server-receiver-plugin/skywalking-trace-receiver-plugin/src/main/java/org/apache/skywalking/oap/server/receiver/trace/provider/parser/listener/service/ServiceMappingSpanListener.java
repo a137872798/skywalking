@@ -46,6 +46,7 @@ import org.apache.skywalking.oap.server.receiver.trace.provider.parser.listener.
 public class ServiceMappingSpanListener implements EntrySpanListener {
     private final IServiceInventoryRegister serviceInventoryRegister;
     private final TraceServiceModuleConfig config;
+    // 同样包含一些缓存对象
     private final ServiceInventoryCache serviceInventoryCache;
     private final NetworkAddressInventoryCache networkAddressInventoryCache;
     private final List<ServiceMapping> serviceMappings = new ArrayList<>();

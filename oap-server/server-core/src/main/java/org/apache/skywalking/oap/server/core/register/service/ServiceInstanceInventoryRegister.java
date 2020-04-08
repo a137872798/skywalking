@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
+/**
+ * 存储服务实例信息
+ */
 public class ServiceInstanceInventoryRegister implements IServiceInstanceInventoryRegister {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceInstanceInventoryRegister.class);
@@ -122,11 +125,18 @@ public class ServiceInstanceInventoryRegister implements IServiceInstanceInvento
         }
     }
 
+    /**
+     * 接收到服务心跳
+     * @param serviceInstanceId
+     * @param heartBeatTime
+     */
     @Override
     public void heartbeat(int serviceInstanceId, long heartBeatTime) {
         ServiceInstanceInventory serviceInstanceInventory = getServiceInstanceInventoryCache().get(serviceInstanceId);
         if (nonNull(serviceInstanceInventory)) {
+            // 更新某个服务实例的心跳时间
             serviceInstanceInventory.setHeartbeatTime(heartBeatTime);
+            // 持久化
             InventoryStreamProcessor.getInstance().in(serviceInstanceInventory);
         } else {
             logger.warn("Service instance {} heartbeat, but not found in storage.", serviceInstanceId);

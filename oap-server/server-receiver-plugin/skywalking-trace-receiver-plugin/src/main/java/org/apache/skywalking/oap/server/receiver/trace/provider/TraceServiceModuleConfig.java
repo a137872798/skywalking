@@ -37,6 +37,7 @@ public class TraceServiceModuleConfig extends ModuleConfig {
     private boolean bufferFileCleanWhenRestart;
     /**
      * The sample rate precision is 1/10000. 10000 means 100% sample in default.
+     * 采样比率 默认是 100%
      */
     @Setter
     @Getter
@@ -44,6 +45,7 @@ public class TraceServiceModuleConfig extends ModuleConfig {
 
     /**
      * The threshold used to check the slow database access. Unit, millisecond.
+     * 低延迟的标准 200 毫秒
      */
     @Setter
     @Getter

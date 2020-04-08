@@ -39,6 +39,10 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
 
     private final NamingService namingService;
     private final ClusterModuleNacosConfig config;
+
+    /**
+     * 本机地址
+     */
     private volatile Address selfAddress;
 
     public NacosCoordinator(NamingService namingService, ClusterModuleNacosConfig config) {
@@ -72,6 +76,11 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
         return result;
     }
 
+    /**
+     * 向配置中心注册配置
+     * @param remoteInstance
+     * @throws ServiceRegisterException
+     */
     @Override
     public void registerRemote(RemoteInstance remoteInstance) throws ServiceRegisterException {
         String host = remoteInstance.getAddress().getHost();

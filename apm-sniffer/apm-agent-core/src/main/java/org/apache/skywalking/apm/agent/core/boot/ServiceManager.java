@@ -41,7 +41,9 @@ public enum ServiceManager {
     public void boot() {
         bootedServices = loadAllServices();
 
+        // 做准备工作 实际上大部分的组件就是在这个时候注册到 GRPCChannelManager 上 便于监听连接的创建和创建存根对象
         prepare();
+        // 触发所有实例的 boot()
         startup();
         // 安装完毕后就会触发该方法
         onComplete();
@@ -64,14 +66,17 @@ public enum ServiceManager {
         for (final BootService bootService : allServices) {
             Class<? extends BootService> bootServiceClass = bootService.getClass();
             boolean isDefaultImplementor = bootServiceClass.isAnnotationPresent(DefaultImplementor.class);
+            // 这样代表默认的实现
             if (isDefaultImplementor) {
                 if (!bootedServices.containsKey(bootServiceClass)) {
                     bootedServices.put(bootServiceClass, bootService);
                 } else {
                     //ignore the default service
                 }
+            // 代表拓展的实现
             } else {
                 OverrideImplementor overrideImplementor = bootServiceClass.getAnnotation(OverrideImplementor.class);
+                // 代表普通的服务
                 if (overrideImplementor == null) {
                     if (!bootedServices.containsKey(bootServiceClass)) {
                         bootedServices.put(bootServiceClass, bootService);

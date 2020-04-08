@@ -34,6 +34,5 @@ public class GRPCExporterSetting extends ModuleConfig {
 
     // 传输数据使用的缓冲区大小和数量
     private int bufferChannelSize = 20000;
-    // 2个可以一起使用么 还是使用轮询的方式 每次使用不同的channel ???
     private int bufferChannelNum = 2;
 }

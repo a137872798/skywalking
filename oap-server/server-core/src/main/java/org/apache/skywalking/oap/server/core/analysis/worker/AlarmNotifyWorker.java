@@ -37,6 +37,7 @@ public class AlarmNotifyWorker extends AbstractWorker<Metrics> {
 
     @Override
     public void in(Metrics metrics) {
+        // 只处理某些特殊的统计项
         if (metrics instanceof WithMetadata) {
             entrance.forward(metrics);
         }
